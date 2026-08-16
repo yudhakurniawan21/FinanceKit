@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+// Prisma 7: connection URL dikelola di prisma.config.ts (env DATABASE_URL).
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────────────────────
+// BetterAuth canonical models — jangan dimodifikasi agar adapter
+// (better-auth/adapters/prisma) kompatibel. Cek: @auth/prisma-adapter.
+// ──────────────────────────────────────────────────────────────
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  @@unique([email])
+  @@map("user")
+
+  // Relasi aplikasi
+  sessions    Session[]
+  accounts    Account[]
+  settings    UserSettings?
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+  @@map("verification")
+}
+
+// ──────────────────────────────────────────────────────────────
+// Skema aplikasi (FinansialKit)
+// ──────────────────────────────────────────────────────────────
+model UserSettings {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locale      String   @default("id-ID")
+  currency    String   @default("IDR")
+  dateFormat  String   @default("dd/MM/yyyy")
+  timeZone    String   @default("Asia/Jakarta")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@map("user_settings")
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String
+  type          TransactionType
+  icon          String?
+  color         String?
+  budget        Int?          // cents, monthly budget for this category
+  sortOrder     Int           @default(100)
+  userId        String
+  transactions  Transaction[]
+  @@unique([userId, slug])
+  @@index([userId, type])
+  @@map("category")
+}
+
+model Transaction {
+  id          String           @id @default(cuid())
+  date        DateTime         @db.Date
+  description String?
+  amount      Int              // minor unit (cents for USD, rupiah for IDR) — cek currencies.ts
+  type        TransactionType
+  method      PaymentMethod?
+  categoryId  String?
+  category    Category?        @relation(fields: [categoryId], references: [id])
+  userId      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  @@index([userId, date, type])
+  @@index([categoryId])
+  @@map("transaction")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum PaymentMethod {
+  CASH
+  BANK
+  E_WALLET
+  CARD
+}
