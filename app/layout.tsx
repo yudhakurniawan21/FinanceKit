@@ -7,6 +7,7 @@ import "@fontsource/inter/900.css";
 import "./globals.css";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { I18nProvider } from "@/lib/i18n/client";
 
 const themeScript = `
 try {
@@ -29,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="scroll-smooth" suppressHydrationWarning>
+    <html lang="id" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{ __html: themeScript }}
@@ -37,7 +38,9 @@ export default function RootLayout({
         />
       </head>
       <body className="h-full antialiased" suppressHydrationWarning>
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

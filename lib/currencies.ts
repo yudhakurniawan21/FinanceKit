@@ -55,6 +55,6 @@ export function formatMoney(
   }).format(major);
 }
 
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("id-ID").format(value);
+export function formatNumber(value: number, locale = "id-ID"): string {
+  return new Intl.NumberFormat(locale).format(value);
 }

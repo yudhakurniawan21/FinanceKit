@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { TransactionSchema } from "@/lib/validation";
 import { majorToMinor } from "@/lib/currencies";
+import { translate } from "@/lib/i18n";
 import { TransactionType, PaymentMethod } from "@/lib/generated/prisma/client";
 
 export async function createTransactionAction(
@@ -13,17 +14,18 @@ export async function createTransactionAction(
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return { error: "Sesi tidak ditemukan." };
+  if (!session?.user) return { error: translate(null, "errSession") };
+  const locale = await resolveLocale(session.user.id);
 
   const parsed = TransactionSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    return { error: "Validasi gagal. Periksa kembali isian." };
+    return { error: translate(locale, "errValidation") };
   }
   const v = parsed.data;
 
   if (v.categoryId) {
     const owned = await categoryBelongsToUser(v.categoryId, session.user.id);
-    if (!owned) return { error: "Kategori tidak valid." };
+    if (!owned) return { error: translate(locale, "errCategoryInvalid") };
   }
 
   const currency = await resolveCurrency(session.user.id);
@@ -51,19 +53,20 @@ export async function updateTransactionAction(
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return { error: "Sesi tidak ditemukan." };
+  if (!session?.user) return { error: translate(null, "errSession") };
+  const locale = await resolveLocale(session.user.id);
 
   const parsed = TransactionSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    return { error: "Validasi gagal." };
+    return { error: translate(locale, "errValidationShort") };
   }
   const v = parsed.data;
   const id = formData.get("id") as string | null;
-  if (!id) return { error: "ID transaksi tidak ditemukan." };
+  if (!id) return { error: translate(locale, "errTxId") };
 
   if (v.categoryId) {
     const owned = await categoryBelongsToUser(v.categoryId, session.user.id);
-    if (!owned) return { error: "Kategori tidak valid." };
+    if (!owned) return { error: translate(locale, "errCategoryInvalid") };
   }
 
   const currency = await resolveCurrency(session.user.id);
@@ -90,7 +93,7 @@ export async function deleteTransactionAction(
   id: string
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return { error: "Sesi tidak ditemukan." };
+  if (!session?.user) return { error: translate(null, "errSession") };
   await prisma.transaction.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
@@ -103,6 +106,14 @@ async function resolveCurrency(userId: string): Promise<string> {
     select: { currency: true },
   });
   return settings?.currency ?? "IDR";
+}
+
+async function resolveLocale(userId: string): Promise<string | null> {
+  const settings = await prisma.userSettings.findUnique({
+    where: { userId },
+    select: { locale: true },
+  });
+  return settings?.locale ?? null;
 }
 
 // Pastikan kategori benar-benar milik pengguna (cegah cross-tenant IDOR).

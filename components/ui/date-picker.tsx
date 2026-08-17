@@ -1,7 +1,7 @@
 "use client";
 
-import { format } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import { format, type Locale } from "date-fns";
+import { id as idLocale, enUS as enLocale, de as deLocale } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,20 +13,32 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { getCurrencyMeta } from "@/lib/currencies";
+import { langCode } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/client";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+const DF_LOCALES: Record<string, Locale> = {
+  id: idLocale,
+  en: enLocale,
+  de: deLocale,
+};
 
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Pilih tanggal",
+  placeholder,
   className,
+  locale = "id-ID",
 }: {
   value: Date | null;
   onChange: (date: Date | null) => void;
   placeholder?: string;
   className?: string;
+  locale?: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const dfLocale = DF_LOCALES[langCode(locale)] ?? idLocale;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -41,9 +53,9 @@ export function DatePicker({
       >
         <CalendarIcon className="h-4 w-4 shrink-0" />
         {value ? (
-          format(value, "PPP", { locale: idLocale })
+          format(value, "PPP", { locale: dfLocale })
         ) : (
-          <span>{placeholder}</span>
+          <span>{placeholder ?? t("pickDate")}</span>
         )}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
@@ -51,6 +63,7 @@ export function DatePicker({
           mode="single"
           selected={value ?? undefined}
           onSelect={(d: Date | undefined) => onChange(d ?? null)}
+          locale={dfLocale}
         />
       </PopoverContent>
     </Popover>

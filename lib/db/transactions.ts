@@ -3,6 +3,7 @@ import {
   TransactionType,
   type Transaction,
 } from "@/lib/generated/prisma/client";
+import { monthBounds } from "@/lib/formatting";
 
 export interface TransactionWithCategory extends Transaction {
   category: { name: string; color: string | null; icon: string | null } | null;
@@ -34,10 +35,15 @@ export async function listTransactions(
   });
 }
 
-// Agregat per bulan untuk line chart (income & expense) — bulan kalender,
-// dimulai dari awal bulan (months-1) yang lalu sehingga tidak terpotong
-// di tengah bulan.
-export async function monthlyTotals(userId: string, months = 6) {
+// Agregat per bulan untuk line chart (income & expense) — jendela dimulai
+// dari awal bulan (months-1) yang lalu, basis bulan dihitung dalam timezone
+// user (bukan timezone server/DB) agar konsisten dengan tampilan lain.
+export async function monthlyTotals(userId: string, months = 6, timeZone = "Asia/Jakarta") {
+  const { start } = monthBounds(new Date(), timeZone);
+  const startDate = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - (months - 1), 1)
+  );
+
   const res = await prisma.$queryRaw<
     Array<{
       month: string; // YYYY-MM
@@ -51,7 +57,7 @@ export async function monthlyTotals(userId: string, months = 6) {
       "type"
     FROM "transaction"
     WHERE "userId" = ${userId}
-      AND "date" >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month' * ${months - 1}::int
+      AND "date" >= ${startDate}
     GROUP BY month, "type"
     ORDER BY month ASC
   `;
@@ -108,13 +114,64 @@ export async function expenseByCategory(
   });
 }
 
-// Jumlah total anggaran (minor unit) kategori PENGELUARAN yang diatur pengguna.
-export async function budgetSum(userId: string): Promise<number> {
-  const res = await prisma.category.aggregate({
+// Total anggaran & pemakaian bulan ini untuk kategori PENGELUARAN berbudget.
+// Semantik: sisa = Σ per kategori (budget − pengeluaran kategori itu),
+// hanya kategori yang benar-benar punya budget.
+export async function budgetRemaining(
+  userId: string,
+  start: Date,
+  end: Date
+): Promise<{ totalBudget: number; spent: number; remaining: number }> {
+  const cats = await prisma.category.findMany({
     where: { userId, type: "EXPENSE", budget: { not: null } },
-    _sum: { budget: true },
+    select: { id: true, budget: true },
   });
-  return res._sum.budget ?? 0;
+  if (cats.length === 0) {
+    return { totalBudget: 0, spent: 0, remaining: 0 };
+  }
+
+  const rows = await prisma.transaction.groupBy({
+    by: ["categoryId"],
+    where: {
+      userId,
+      type: "EXPENSE",
+      date: { gte: start, lte: end },
+      categoryId: { in: cats.map((c) => c.id) },
+    },
+    _sum: { amount: true },
+  });
+  const spentByCat = new Map(
+    rows.map((r) => [r.categoryId, Number(r._sum.amount ?? 0)])
+  );
+
+  let totalBudget = 0;
+  let spent = 0;
+  for (const c of cats) {
+    totalBudget += c.budget ?? 0;
+    spent += spentByCat.get(c.id) ?? 0;
+  }
+  return { totalBudget, spent, remaining: totalBudget - spent };
+}
+
+// Pengeluaran bulan ini per kategori (minor unit), utk progress bar budget.
+export async function monthSpentByCategory(
+  userId: string,
+  start: Date,
+  end: Date
+): Promise<Record<string, number>> {
+  const rows = await prisma.transaction.groupBy({
+    by: ["categoryId"],
+    where: {
+      userId,
+      type: "EXPENSE",
+      date: { gte: start, lte: end },
+      categoryId: { not: null },
+    },
+    _sum: { amount: true },
+  });
+  return Object.fromEntries(
+    rows.map((r) => [r.categoryId!, Number(r._sum.amount ?? 0)])
+  );
 }
 
 // Total pemasukan & pengeluaran periode ini (minor unit).

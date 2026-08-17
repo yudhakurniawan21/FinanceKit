@@ -1,4 +1,5 @@
 import { parseISO } from "date-fns";
+import { langCode } from "@/lib/i18n";
 
 // Format tanggal timezone-aware. Tanggal disimpan sebagai @db.Date (UTC
 // midnight); tanpa timezone eksplisit, pengguna di barat UTC akan melihat
@@ -6,11 +7,13 @@ import { parseISO } from "date-fns";
 export function formatDate(
   date: Date | string,
   fmt: string = "dd/MM/yyyy",
-  timeZone: string = "Asia/Jakarta"
+  timeZone: string = "Asia/Jakarta",
+  locale: string = "id-ID"
 ): string {
   const d = typeof date === "string" ? parseISO(date) : date;
+  const lc = langCode(locale);
 
-  const parts = new Intl.DateTimeFormat("id-ID", {
+  const parts = new Intl.DateTimeFormat(lc, {
     timeZone,
     year: "numeric",
     month: "2-digit",
@@ -27,7 +30,7 @@ export function formatDate(
   if (fmt === "yyyy-MM-dd") return `${yyyy}-${MM}-${dd}`;
   if (fmt === "MM/dd/yyyy") return `${MM}/${dd}/${yyyy}`;
   if (fmt === "dd MMMM yyyy") {
-    const monthLong = new Intl.DateTimeFormat("id-ID", {
+    const monthLong = new Intl.DateTimeFormat(lc, {
       timeZone,
       month: "long",
     }).format(d);
@@ -36,10 +39,26 @@ export function formatDate(
   return `${dd}/${MM}/${yyyy}`;
 }
 
-export function startOfMonth(date = new Date()): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-export function endOfMonth(date = new Date()): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+// Batas bulan kalender dalam timezone user (UTC midnight). Dipakai untuk
+// window "bulan ini" yang konsisten dengan timezone settings user, bukan
+// timezone server/DB.
+export function monthBounds(
+  date = new Date(),
+  timeZone = "Asia/Jakarta"
+): { start: Date; end: Date } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const p: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") p[part.type] = part.value;
+  }
+  const y = Number(p.year ?? "1970");
+  const m = Number(p.month ?? "01");
+  return {
+    start: new Date(Date.UTC(y, m - 1, 1)),
+    end: new Date(Date.UTC(y, m, 0)),
+  };
 }

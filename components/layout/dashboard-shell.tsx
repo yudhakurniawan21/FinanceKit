@@ -26,6 +26,7 @@ import { LogOut, Menu } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { I18nProvider, useI18n } from "@/lib/i18n/client";
 
 // Tipe pengguna minimal yang diterima dari server layout.
 interface AuthUser {
@@ -37,21 +38,38 @@ interface AuthUser {
 
 export default function DashboardShell({
   user,
+  locale,
+  children,
+}: {
+  user: AuthUser;
+  locale?: string | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <I18nProvider locale={locale}>
+      <ShellContent user={user}>{children}</ShellContent>
+    </I18nProvider>
+  );
+}
+
+function ShellContent({
+  user,
   children,
 }: {
   user: AuthUser;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const displayName = user?.name?.split(" ")[0] ?? user?.email ?? "Akun";
+  const displayName = user?.name?.split(" ")[0] ?? user?.email ?? t("account");
   const avatarInitial = user?.name?.[0] ?? user?.email?.[0] ?? "A";
 
   return (
     <div className="grid min-h-screen grid-rows-[auto_1fr] md:grid-cols-[240px_1fr]">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 border-r bg-muted/30 md:block">
+      <aside className="hidden w-60 border-r bg-muted/30 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto">
         <div className="flex h-14 items-center border-b px-4 font-semibold">
           FinansialKit
         </div>
@@ -65,7 +83,7 @@ export default function DashboardShell({
             variant="ghost"
             size="icon"
             className="md:hidden"
-            aria-label="Buka menu navigasi"
+            aria-label={t("menuOpen")}
             onClick={() => setDrawerOpen(true)}
           >
             <Menu className="h-5 w-5" />
@@ -90,7 +108,7 @@ export default function DashboardShell({
                 <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push("/settings")}>
-                  Pengaturan
+                  {t("navSettings")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -101,7 +119,7 @@ export default function DashboardShell({
                   }}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Keluar
+                  {t("logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

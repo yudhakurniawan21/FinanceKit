@@ -43,6 +43,8 @@ import { TransactionDialog } from "@/components/transactions/transaction-dialog"
 import { deleteTransactionAction } from "@/app/actions/transactions";
 import { formatDate } from "@/lib/formatting";
 import { formatMoney, formatNumber } from "@/lib/currencies";
+import { useI18n } from "@/lib/i18n/client";
+import type { DictKey } from "@/lib/i18n/dictionaries";
 import type { Category } from "@/lib/generated/prisma/client";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
 
@@ -56,14 +58,17 @@ export function TransactionManager({
   currency,
   dateFormat,
   timeZone,
+  locale,
 }: {
   transactions: TransactionWithCategory[];
   categories: Category[];
   currency: string;
   dateFormat: string;
   timeZone: string;
+  locale: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [addOpen, setAddOpen] = useState(false);
   const [editTx, setEditTx] = useState<TransactionWithCategory | null>(null);
   const [deleteTx, setDeleteTx] = useState<TransactionWithCategory | null>(null);
@@ -178,17 +183,17 @@ export function TransactionManager({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          {(["ALL", "INCOME", "EXPENSE"] as const).map((t) => (
+          {(["ALL", "INCOME", "EXPENSE"] as const).map((type) => (
             <Button
-              key={t}
-              variant={activeType === t ? "default" : "outline"}
+              key={type}
+              variant={activeType === type ? "default" : "outline"}
               size="sm"
               onClick={() => {
-                setActiveType(t);
+                setActiveType(type);
                 setPage(1);
               }}
             >
-              {t === "ALL" ? "Semua" : t === "INCOME" ? "Pemasukan" : "Pengeluaran"}
+              {t(type === "ALL" ? "all" : type === "INCOME" ? "income" : "expense")}
             </Button>
           ))}
         </div>
@@ -196,7 +201,7 @@ export function TransactionManager({
           <div className="relative w-48">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Cari…"
+              placeholder={t("search")}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -207,28 +212,28 @@ export function TransactionManager({
           </div>
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Tambah
+            {t("add")}
           </Button>
         </div>
       </div>
 
       <div className="flex gap-6 text-sm">
         <span>
-          Pemasukan:{" "}
+          {t("income")}:{" "}
           <span className="font-medium text-positive">
-            {formatMoney(income, currency)}
+            {formatMoney(income, currency, locale)}
           </span>
         </span>
         <span>
-          Pengeluaran:{" "}
+          {t("expense")}:{" "}
           <span className="font-medium text-destructive">
-            {formatMoney(expense, currency)}
+            {formatMoney(expense, currency, locale)}
           </span>
         </span>
         <span>
-          Net:{" "}
+          {t("net")}:{" "}
           <span className="font-medium">
-            {formatMoney(income - expense, currency)}
+            {formatMoney(income - expense, currency, locale)}
           </span>
         </span>
       </div>
@@ -238,42 +243,42 @@ export function TransactionManager({
           <TableHeader>
             <TableRow>
               <SortableHead
-                label="Tanggal"
+                label={t("colDate")}
                 sortKey="date"
                 activeKey={sortKey}
                 dir={sortDir}
                 onSort={handleSort}
               />
               <SortableHead
-                label="Deskripsi"
+                label={t("colDescription")}
                 sortKey="description"
                 activeKey={sortKey}
                 dir={sortDir}
                 onSort={handleSort}
               />
               <SortableHead
-                label="Kategori"
+                label={t("colCategory")}
                 sortKey="category"
                 activeKey={sortKey}
                 dir={sortDir}
                 onSort={handleSort}
               />
               <SortableHead
-                label="Metode"
+                label={t("colMethod")}
                 sortKey="method"
                 activeKey={sortKey}
                 dir={sortDir}
                 onSort={handleSort}
               />
               <SortableHead
-                label="Jumlah"
+                label={t("colAmount")}
                 sortKey="amount"
                 activeKey={sortKey}
                 dir={sortDir}
                 onSort={handleSort}
                 className="text-right"
               />
-              <TableHead className="text-center">Aksi</TableHead>
+              <TableHead className="text-center">{t("colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -285,19 +290,19 @@ export function TransactionManager({
                     <div>
                       <p className="font-medium text-foreground">
                         {transactions.length === 0
-                          ? "Belum ada transaksi"
-                          : "Tidak ada hasil"}
+                          ? t("noTransactionsYet")
+                          : t("noResults")}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {transactions.length === 0
-                          ? "Mulai catat pemasukan dan pengeluaran Anda."
-                          : "Coba ubah filter atau kata kunci pencarian."}
+                          ? t("startTracking")
+                          : t("tryChangingFilters")}
                       </p>
                     </div>
                     {transactions.length === 0 && (
                       <Button size="sm" onClick={() => setAddOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Tambah transaksi pertama
+                        {t("addFirstTransaction")}
                       </Button>
                     )}
                   </div>
@@ -309,7 +314,7 @@ export function TransactionManager({
                 const isIncome = tx.type === "INCOME";
                 return (
                   <TableRow key={tx.id} className="transition-colors hover:bg-muted/50">
-                    <TableCell>{formatDate(tx.date, dateFormat, timeZone)}</TableCell>
+                    <TableCell>{formatDate(tx.date, dateFormat, timeZone, locale)}</TableCell>
                     <TableCell>{tx.description ?? <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>
                       {cat ? (
@@ -326,7 +331,7 @@ export function TransactionManager({
                     </TableCell>
                     <TableCell>
                       {tx.method ? (
-                        <Badge variant="outline">{methodLabel(tx.method)}</Badge>
+                        <Badge variant="outline">{methodLabel(t, tx.method)}</Badge>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
@@ -338,7 +343,7 @@ export function TransactionManager({
                       }
                     >
                       {isIncome ? "+ " : "- "}
-                      {formatMoney(tx.amount, currency)}
+                      {formatMoney(tx.amount, currency, locale)}
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
@@ -371,17 +376,18 @@ export function TransactionManager({
       {filtered.length > 0 && (
         <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            Menampilkan{" "}
-            {formatNumber((safePage - 1) * pageSize + 1)}–
-            {formatNumber(Math.min(safePage * pageSize, filtered.length))} dari{" "}
-            {formatNumber(filtered.length)} transaksi
+            {t("showingRows", {
+              from: formatNumber((safePage - 1) * pageSize + 1, locale),
+              to: formatNumber(Math.min(safePage * pageSize, filtered.length), locale),
+              total: formatNumber(filtered.length, locale),
+            })}
           </p>
 
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label="Halaman sebelumnya"
+              aria-label={t("prevPage")}
               disabled={safePage <= 1}
               onClick={() => setPage(safePage - 1)}
             >
@@ -410,7 +416,7 @@ export function TransactionManager({
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label="Halaman berikutnya"
+              aria-label={t("nextPage")}
               disabled={safePage >= totalPages}
               onClick={() => setPage(safePage + 1)}
             >
@@ -419,7 +425,7 @@ export function TransactionManager({
           </div>
 
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            Baris per halaman
+            {t("rowsPerPage")}
             <Select
               value={String(pageSize)}
               onValueChange={(v: string | null) => {
@@ -453,6 +459,7 @@ export function TransactionManager({
         mode="create"
         categories={categories}
         currency={currency}
+        locale={locale}
       />
 
       {/* Edit dialog */}
@@ -464,6 +471,7 @@ export function TransactionManager({
           transaction={editTx}
           categories={categories}
           currency={currency}
+          locale={locale}
         />
       )}
 
@@ -474,12 +482,15 @@ export function TransactionManager({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus transaksi?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteTxTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTx
-                ? `Transaksi ${formatMoney(deleteTx.amount, currency)}${
-                    deleteTx.description ? ` — ${deleteTx.description}` : ""
-                  } akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`
+                ? t("deleteTxDesc", {
+                    amount: formatMoney(deleteTx.amount, currency, locale),
+                    desc: deleteTx.description
+                      ? ` — ${deleteTx.description}`
+                      : "",
+                  })
                 : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -490,7 +501,7 @@ export function TransactionManager({
               disabled={deleting}
               onClick={() => setDeleteTx(null)}
             >
-              Batal
+              {t("cancel")}
             </Button>
             <Button
               type="button"
@@ -498,7 +509,7 @@ export function TransactionManager({
               disabled={deleting}
               onClick={handleDelete}
             >
-              {deleting ? "Menghapus…" : "Ya, hapus"}
+              {deleting ? t("deleting") : t("yesDelete")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -507,14 +518,17 @@ export function TransactionManager({
   );
 }
 
-function methodLabel(method: string) {
-  const map: Record<string, string> = {
-    CASH: "Tunai",
-    BANK: "Bank",
-    E_WALLET: "Dompet Digital",
-    CARD: "Kartu",
+function methodLabel(
+  t: (key: DictKey, vars?: Record<string, string | number>) => string,
+  method: string
+) {
+  const map: Record<string, DictKey> = {
+    CASH: "methodCash",
+    BANK: "methodBank",
+    E_WALLET: "methodEwallet",
+    CARD: "methodCard",
   };
-  return map[method] ?? method;
+  return map[method] ? t(map[method]) : method;
 }
 
 function SortableHead({

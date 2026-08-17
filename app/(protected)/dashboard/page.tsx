@@ -4,9 +4,9 @@ import {
   expenseByCategory,
   sumByType,
   listTransactions,
-  budgetSum,
+  budgetRemaining,
 } from "@/lib/db/transactions";
-import { startOfMonth, endOfMonth } from "@/lib/formatting";
+import { monthBounds, formatDate } from "@/lib/formatting";
 import DashboardView from "@/components/dashboard/dashboard-view";
 import { redirect } from "next/navigation";
 
@@ -19,26 +19,26 @@ export default async function DashboardPage() {
   const currency = user.settings?.currency ?? "IDR";
   const dateFormat = user.settings?.dateFormat ?? "dd/MM/yyyy";
   const timeZone = user.settings?.timeZone ?? "Asia/Jakarta";
+  const locale = user.settings?.locale ?? "id-ID";
   const now = new Date();
-  const mStart = startOfMonth(now);
-  const mEnd = endOfMonth(now);
+  const { start: mStart, end: mEnd } = monthBounds(now, timeZone);
+  const todayLabel = formatDate(now, dateFormat, timeZone, locale);
 
   const [monthly, byCat, recent, stats, budget] = await Promise.all([
-    monthlyTotals(user.user.id, 6),
+    monthlyTotals(user.user.id, 6, timeZone),
     expenseByCategory(user.user.id, mStart, mEnd),
     listTransactions(user.user.id, { limit: 5 }),
     sumByType(user.user.id, mStart, mEnd),
-    budgetSum(user.user.id),
+    budgetRemaining(user.user.id, mStart, mEnd),
   ]);
 
   return (
     <DashboardView
       currency={currency}
-      dateFormat={dateFormat}
-      timeZone={timeZone}
+      todayLabel={todayLabel}
       income={stats.income}
       expense={stats.expense}
-      budgetSum={budget}
+      budget={budget}
       monthly={monthly}
       byCategory={byCat}
       recent={recent}

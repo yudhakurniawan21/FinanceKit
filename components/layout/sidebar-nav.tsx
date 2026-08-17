@@ -8,18 +8,29 @@ import {
   Settings,
   BarChart3,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/client";
+import type { DictKey } from "@/lib/i18n/dictionaries";
 
-const nav = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: "/dashboard" },
-  { label: "Transaksi", href: "/transactions", icon: ReceiptText, match: "/transactions" },
-  { label: "Kategori", href: "/categories", icon: Tags, match: "/categories" },
-  { label: "AI Insights", href: "/insights", icon: BarChart3, match: "/insights" },
-  { label: "Pengaturan", href: "/settings", icon: Settings, match: "/settings" },
+const nav: Array<{
+  label: Extract<
+    DictKey,
+    "navDashboard" | "navTransactions" | "navCategories" | "navInsights" | "navSettings"
+  >;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  match: string;
+}> = [
+  { label: "navDashboard", href: "/dashboard", icon: LayoutDashboard, match: "/dashboard" },
+  { label: "navTransactions", href: "/transactions", icon: ReceiptText, match: "/transactions" },
+  { label: "navCategories", href: "/categories", icon: Tags, match: "/categories" },
+  { label: "navInsights", href: "/insights", icon: BarChart3, match: "/insights" },
+  { label: "navSettings", href: "/settings", icon: Settings, match: "/settings" },
 ];
 
 export function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
 
   return (
     <nav className="flex flex-col gap-1 p-2">
@@ -41,7 +52,7 @@ export function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
             }
           >
             <n.icon className="h-4 w-4" />
-            <span>{n.label}</span>
+            <span>{t(n.label)}</span>
           </button>
         );
       })}

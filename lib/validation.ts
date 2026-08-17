@@ -25,6 +25,13 @@ export const CategorySchema = z.object({
     .optional(),
 });
 
+// Edit kategori: nama/ikon/warna saja (type & budget tidak diubah di sini).
+export const CategoryEditSchema = z.object({
+  name: z.string().min(1, "Nama kategori wajib diisi").max(50),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+});
+
 export const UserSettingsSchema = z.object({
   locale: z.string().min(2),
   currency: z.string().length(3),

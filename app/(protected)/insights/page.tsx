@@ -4,9 +4,10 @@ import {
   expenseByCategory,
   listTransactions,
 } from "@/lib/db/transactions";
-import { startOfMonth, endOfMonth } from "@/lib/formatting";
+import { monthBounds } from "@/lib/formatting";
 import { formatMoney } from "@/lib/currencies";
 import { InsightPanel } from "@/components/insights/insight-panel";
+import { createTranslator } from "@/lib/i18n";
 import { redirect } from "next/navigation";
 
 export default async function InsightsPage() {
@@ -16,9 +17,10 @@ export default async function InsightsPage() {
   }
 
   const currency = user.settings?.currency ?? "IDR";
-  const now = new Date();
-  const mStart = startOfMonth(now);
-  const mEnd = endOfMonth(now);
+  const locale = user.settings?.locale ?? "id-ID";
+  const timeZone = user.settings?.timeZone ?? "Asia/Jakarta";
+  const t = createTranslator(locale);
+  const { start: mStart, end: mEnd } = monthBounds(new Date(), timeZone);
 
   const [stats, byCat, recent] = await Promise.all([
     sumByType(user.user.id, mStart, mEnd),
@@ -26,49 +28,51 @@ export default async function InsightsPage() {
     listTransactions(user.user.id, { start: mStart, end: mEnd, limit: 8 }),
   ]);
 
-  const typeLabel = (t: string) =>
-    t === "INCOME" ? "pemasukan" : "pengeluaran";
+  const typeLabel = (txType: string) =>
+    t(txType === "INCOME" ? "ctxTypeIncome" : "ctxTypeExpense");
 
   const context = [
-    `Ringkasan keuangan bulan ini (${currency}):`,
-    `- Pemasukan: ${formatMoney(stats.income, currency)}`,
-    `- Pengeluaran: ${formatMoney(stats.expense, currency)}`,
-    `- Total pengeluaran per kategori: ${byCat
-      .map((c) => `${c.name} (${formatMoney(c.amount, currency)})`)
-      .join(", ") || "n/a"}`,
-    `- Transaksi terbaru: ${recent
-      .map(
-        (t) =>
-          `${typeLabel(t.type)} ${formatMoney(t.amount, currency)}${t.description ? ` (${t.description})` : ""}`
-      )
-      .join("; ") || "n/a"}`,
+    t("ctxSummary", { currency }),
+    t("ctxIncome", { amount: formatMoney(stats.income, currency, locale) }),
+    t("ctxExpense", { amount: formatMoney(stats.expense, currency, locale) }),
+    t("ctxByCategory", {
+      list:
+        byCat
+          .map((c) => `${c.name} (${formatMoney(c.amount, currency, locale)})`)
+          .join(", ") || "n/a",
+    }),
+    t("ctxRecent", {
+      list:
+        recent
+          .map(
+            (tx) =>
+              `${typeLabel(tx.type)} ${formatMoney(tx.amount, currency, locale)}${tx.description ? ` (${tx.description})` : ""}`
+          )
+          .join("; ") || "n/a",
+    }),
   ].join("\n");
 
   const presetPrompts = [
     {
-      label: "Ringkasan Bulan",
-      prompt:
-        "Berikan ringkasan apa saja yang terjadi dengan keuangan bulan ini (3-4 poin): pola pengeluaran, kategori terbesar, dan apakah saya akan berada di atas atau di bawah anggaran. Jawab singkat dalam Bahasa Indonesia.",
+      label: t("presetSummary"),
+      prompt: t("promptSummary"),
     },
     {
-      label: "Saran Hemat",
-      prompt:
-        "Berikan 3 saran hemat yang nyata berdasarkan pola pengeluaran bulan ini. Fokus pada kategori dengan proporsi besar. Jawab dalam Bahasa Indonesia.",
+      label: t("presetSave"),
+      prompt: t("promptSave"),
     },
     {
-      label: "Cek vs Anggaran",
-      prompt:
-        "Bandingkan total pengeluaran bulan ini terhadap anggaran yang telah ditetapkan. Beri peringatan jika ada kategori melebihi anggaran. Jawab singkat dalam Bahasa Indonesia.",
+      label: t("presetBudget"),
+      prompt: t("promptBudget"),
     },
   ];
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div>
-        <h1 className="text-display-sm font-display">AI Insights</h1>
+        <h1 className="text-display-sm font-display">{t("navInsights")}</h1>
         <p className="text-sm text-muted-foreground">
-          Insight keuangan berbasis data transaksi Anda — memakai Poolside
-          (poolside/laguna-s-2.1).
+          {t("insightsPageDesc")}
         </p>
       </div>
       <InsightPanel context={context} presetPrompts={presetPrompts} />

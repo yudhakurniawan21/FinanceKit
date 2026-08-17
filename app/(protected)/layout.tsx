@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getCurrentUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/layout/dashboard-shell";
 import type { ReactNode } from "react";
@@ -12,11 +11,15 @@ export default async function ProtectedLayout({
 }: {
   children: ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const user = await getCurrentUser();
 
-  if (!session?.user) {
+  if (!user) {
     redirect("/sign-in?callbackUrl=/dashboard");
   }
 
-  return <DashboardShell user={session.user}>{children}</DashboardShell>;
+  return (
+    <DashboardShell user={user.user} locale={user.settings?.locale ?? null}>
+      {children}
+    </DashboardShell>
+  );
 }

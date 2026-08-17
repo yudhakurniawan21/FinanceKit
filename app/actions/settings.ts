@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { UserSettingsSchema } from "@/lib/validation";
+import { translate } from "@/lib/i18n";
 
 export type SettingsState = {
   success?: boolean;
@@ -18,12 +19,12 @@ export async function upsertUserSettings(
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
   if (!userId) {
-    return { error: "Sesi tidak ditemukan. Silakan masuk kembali." };
+    return { error: translate(null, "errSessionLogin") };
   }
 
   const parsed = UserSettingsSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    return { error: "Data pengaturan tidak valid. Periksa kembali." };
+    return { error: translate(null, "errSettingsInvalid") };
   }
 
   const data = parsed.data;
@@ -58,7 +59,7 @@ export async function deleteAccountAction(): Promise<DeleteAccountState> {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
   if (!userId) {
-    return { error: "Sesi tidak ditemukan. Silakan masuk kembali." };
+    return { error: translate(null, "errSessionLogin") };
   }
 
   try {
@@ -68,7 +69,7 @@ export async function deleteAccountAction(): Promise<DeleteAccountState> {
     });
   } catch (err) {
     console.error("deleteAccountAction failed", err);
-    return { error: "Gagal menghapus akun. Coba lagi." };
+    return { error: translate(null, "errDeleteAccount") };
   }
 
   revalidatePath("/");

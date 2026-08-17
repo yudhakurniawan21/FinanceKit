@@ -26,14 +26,8 @@ import {
   updateTransactionAction,
 } from "@/app/actions/transactions";
 import { minorToMajor } from "@/lib/currencies";
+import { useI18n } from "@/lib/i18n/client";
 import type { Category, Transaction } from "@/lib/generated/prisma/client";
-
-const METHOD_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "CASH", label: "Tunai" },
-  { value: "BANK", label: "Transfer / Bank" },
-  { value: "E_WALLET", label: "Dompet Digital" },
-  { value: "CARD", label: "Kartu" },
-];
 
 export function TransactionDialog({
   open,
@@ -42,6 +36,7 @@ export function TransactionDialog({
   transaction,
   categories,
   currency,
+  locale,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,7 +44,9 @@ export function TransactionDialog({
   transaction?: Transaction | null;
   categories: Category[];
   currency: string;
+  locale: string;
 }) {
+  const { t } = useI18n();
   const [date, setDate] = useState<Date | null>(
     transaction ? new Date(transaction.date) : new Date()
   );
@@ -93,8 +90,15 @@ export function TransactionDialog({
   }, [state?.success, onOpenChange]);
 
   const typeOptions: Array<{ value: "INCOME" | "EXPENSE"; label: string }> = [
-    { value: "INCOME", label: "Pemasukan" },
-    { value: "EXPENSE", label: "Pengeluaran" },
+    { value: "INCOME", label: t("income") },
+    { value: "EXPENSE", label: t("expense") },
+  ];
+
+  const methodOptions: Array<{ value: string; label: string }> = [
+    { value: "CASH", label: t("methodCash") },
+    { value: "BANK", label: t("methodBank") },
+    { value: "E_WALLET", label: t("methodEwallet") },
+    { value: "CARD", label: t("methodCard") },
   ];
 
   const categoryOptions = categories.filter((c) => c.type === type);
@@ -105,19 +109,19 @@ export function TransactionDialog({
         <form action={boundAction} className="space-y-4">
           <DialogHeader>
             <DialogTitle>
-              {mode === "edit" ? "Edit Transaksi" : "Tambah Transaksi"}
+              {mode === "edit" ? t("editTxTitle") : t("addTxTitle")}
             </DialogTitle>
             <DialogDescription>
               {mode === "edit"
-                ? "Perbarui detail transaksi di bawah."
-                : "Catat transaksi baru Anda."}
+                ? t("editTxDesc")
+                : t("addTxDesc")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>Tanggal</Label>
-              <DatePicker value={date} onChange={setDate} />
+              <Label>{t("dateLabel")}</Label>
+              <DatePicker value={date} onChange={setDate} locale={locale} />
               <input
                 type="hidden"
                 name="date"
@@ -127,7 +131,7 @@ export function TransactionDialog({
 
             <MoneyInput
               name="amount"
-              label="Jumlah"
+              label={t("amountLabel")}
               defaultValue={
                 transaction
                   ? minorToMajor(transaction.amount, currency)
@@ -138,7 +142,7 @@ export function TransactionDialog({
             />
 
             <div className="space-y-1">
-              <Label>Jenis</Label>
+              <Label>{t("typeLabel")}</Label>
               <div className="flex gap-2">
                 {typeOptions.map((o) => (
                   <button
@@ -160,13 +164,13 @@ export function TransactionDialog({
             </div>
 
             <div className="space-y-1">
-              <Label>Kategori</Label>
+              <Label>{t("categoryLabel")}</Label>
               <Select
                 value={category}
                 onValueChange={(v: string | null) => setCategory(v ?? "")}
                 disabled={isPending}
                 items={[
-                  { value: "", label: "Tanpa kategori" },
+                  { value: "", label: t("noCategory") },
                   ...categoryOptions.map((c) => ({
                     value: c.id,
                     label: c.name,
@@ -174,11 +178,11 @@ export function TransactionDialog({
                 ]}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih kategori (opsional)" />
+                  <SelectValue placeholder={t("selectCategoryPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="" label="Tanpa kategori">
-                    Tanpa kategori
+                  <SelectItem value="" label={t("noCategory")}>
+                    {t("noCategory")}
                   </SelectItem>
                   {categoryOptions.map((c) => (
                     <SelectItem value={c.id} key={c.id} label={c.name}>
@@ -197,25 +201,25 @@ export function TransactionDialog({
             </div>
 
             <div className="space-y-1">
-              <Label>Metode</Label>
+              <Label>{t("methodLabel")}</Label>
               <Select
                 value={method}
                 onValueChange={(v: string | null) => setMethod(v ?? "")}
                 disabled={isPending}
                 items={[
                   { value: "", label: "—" },
-                  ...METHOD_OPTIONS.map((m) => ({
+                  ...methodOptions.map((m) => ({
                     value: m.value,
                     label: m.label,
                   })),
                 ]}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih metode (opsional)" />
+                  <SelectValue placeholder={t("selectMethodPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="" label="—">—</SelectItem>
-                  {METHOD_OPTIONS.map((m) => (
+                  {methodOptions.map((m) => (
                     <SelectItem value={m.value} key={m.value} label={m.label}>
                       {m.label}
                     </SelectItem>
@@ -226,7 +230,7 @@ export function TransactionDialog({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="tx-desc">Catatan</Label>
+              <Label htmlFor="tx-desc">{t("notesLabel")}</Label>
               <Textarea
                 id="tx-desc"
                 name="description"
@@ -234,7 +238,7 @@ export function TransactionDialog({
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
                 disabled={isPending}
-                placeholder="Opsional, mis. Sarapan pagi"
+                placeholder={t("notesPlaceholder")}
               />
             </div>
 
@@ -254,14 +258,14 @@ export function TransactionDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
-              Batal
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending
-                ? "Menyimpan…"
+                ? t("saving")
                 : mode === "edit"
-                  ? "Simpan"
-                  : "Tambah"}
+                  ? t("save")
+                  : t("add")}
             </Button>
           </DialogFooter>
         </form>

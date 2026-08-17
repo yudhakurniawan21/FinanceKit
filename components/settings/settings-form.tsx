@@ -22,6 +22,7 @@ import { Save, Trash2 } from "lucide-react";
 import { upsertUserSettings, deleteAccountAction } from "@/app/actions/settings";
 import { SUPPORTED_CURRENCIES } from "@/lib/currencies";
 import { LOCALES, DATE_FORMATS, TIMEZONES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/client";
 import type { UserSettings } from "@/lib/generated/prisma/client";
 
 export function SettingsForm({
@@ -30,6 +31,7 @@ export function SettingsForm({
   settings: UserSettings | null;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [state, action, isPending] = useActionState(upsertUserSettings, null);
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteAccountAction,
@@ -48,16 +50,15 @@ export function SettingsForm({
       <form action={action} className="space-y-6">
         <Card>
         <CardHeader>
-          <CardTitle>Pengaturan Aplikasi</CardTitle>
+          <CardTitle>{t("appSettingsTitle")}</CardTitle>
           <CardDescription>
-            Sesuaikan mata uang, bahasa, dan format tanggal yang dipakai
-            aplikasi.
+            {t("appSettingsDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {state?.success && (
             <p className="text-sm text-positive">
-              Pengaturan berhasil disimpan.
+              {t("settingsSaved")}
             </p>
           )}
           {state?.error && (
@@ -65,8 +66,8 @@ export function SettingsForm({
           )}
 
           <SelectField
-            label="Mata uang"
-            description="Mata uang default untuk transaksi Anda."
+            label={t("currencyLabel")}
+            description={t("currencyDesc")}
             value={settings?.currency ?? "IDR"}
             options={SUPPORTED_CURRENCIES.map((c) => ({
               value: c.code,
@@ -77,8 +78,8 @@ export function SettingsForm({
           />
 
           <SelectField
-            label="Bahasa"
-            description="Bahasa tampilan aplikasi."
+            label={t("languageLabel")}
+            description={t("languageDesc")}
             value={settings?.locale ?? "id-ID"}
             options={LOCALES as readonly { value: string; label: string }[]}
             name="locale"
@@ -86,8 +87,8 @@ export function SettingsForm({
           />
 
           <SelectField
-            label="Format tanggal"
-            description="Bagaimana tanggal ditampilkan."
+            label={t("dateFormatLabel")}
+            description={t("dateFormatDesc")}
             value={settings?.dateFormat ?? "dd/MM/yyyy"}
             options={DATE_FORMATS as readonly { value: string; label: string }[]}
             name="dateFormat"
@@ -95,8 +96,8 @@ export function SettingsForm({
           />
 
           <SelectField
-            label="Zona waktu"
-            description="Zona waktu untuk laporan harian/bulanan."
+            label={t("timeZoneLabel")}
+            description={t("timeZoneDesc")}
             value={settings?.timeZone ?? "Asia/Jakarta"}
             options={TIMEZONES as readonly { value: string; label: string }[]}
             name="timeZone"
@@ -105,7 +106,7 @@ export function SettingsForm({
 
           <Button type="submit" disabled={isPending}>
             <Save className="mr-2 h-4 w-4" />
-            {isPending ? "Menyimpan…" : "Simpan Pengaturan"}
+            {isPending ? t("saving") : t("saveSettings")}
           </Button>
         </CardContent>
       </Card>
@@ -113,11 +114,9 @@ export function SettingsForm({
 
       <Card className="border-destructive/40">
         <CardHeader>
-          <CardTitle className="text-destructive">Zona Berbahaya</CardTitle>
+          <CardTitle className="text-destructive">{t("dangerZone")}</CardTitle>
           <CardDescription>
-            Menghapus akun akan menghapus seluruh data Anda secara permanen —
-            transaksi, kategori, anggaran, dan pengaturan. Tindakan ini tidak
-            dapat dibatalkan.
+            {t("dangerZoneDesc")}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex flex-col items-start gap-3">
@@ -129,12 +128,12 @@ export function SettingsForm({
               onClick={() => setConfirming(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Hapus Akun
+              {t("deleteAccount")}
             </Button>
           ) : (
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm text-muted-foreground">
-                Yakin ingin menghapus akun secara permanen?
+                {t("confirmDeleteAccount")}
               </span>
               <form action={deleteAction} className="contents">
                 <Button
@@ -142,7 +141,7 @@ export function SettingsForm({
                   variant="destructive"
                   disabled={deletePending}
                 >
-                  {deletePending ? "Menghapus…" : "Ya, hapus akun saya"}
+                  {deletePending ? t("deleting") : t("yesDeleteAccount")}
                 </Button>
               </form>
               <Button
@@ -151,7 +150,7 @@ export function SettingsForm({
                 disabled={deletePending}
                 onClick={() => setConfirming(false)}
               >
-                Batal
+                {t("cancel")}
               </Button>
             </div>
           )}

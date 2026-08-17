@@ -22,7 +22,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/currencies";
-import { formatDate } from "@/lib/formatting";
+import { useI18n } from "@/lib/i18n/client";
+import { langCode } from "@/lib/i18n";
 import { TrendingUp, TrendingDown, Wallet, CalendarDays } from "lucide-react";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
 
@@ -36,59 +37,55 @@ type CatAgg = { name: string; amount: number; color: string | null };
 
 export default function DashboardView({
   currency,
-  dateFormat,
-  timeZone,
+  todayLabel,
   income,
   expense,
-  budgetSum,
+  budget,
   monthly,
   byCategory,
   recent,
 }: {
   currency: string;
-  dateFormat: string;
-  timeZone: string;
+  todayLabel: string;
   income: number;
   expense: number;
-  budgetSum: number;
+  budget: { totalBudget: number; spent: number; remaining: number };
   monthly: MonthlyPt[];
   byCategory: CatAgg[];
   recent: TransactionWithCategory[];
 }) {
+  const { t, locale } = useI18n();
   return (
     <div className="space-y-6 p-4 pb-4 sm:p-6">
       <div className="flex items-baseline justify-between">
         <h1 className="text-display-sm font-display">Dashboard</h1>
-        <span className="text-sm text-muted-foreground">
-          {formatDate(new Date(), dateFormat, timeZone)}
-        </span>
+        <span className="text-sm text-muted-foreground">{todayLabel}</span>
       </div>
 
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<TrendingUp className="h-4 w-4 text-positive" />}
-          label="Pemasukan"
-          value={formatMoney(income, currency)}
+          label={t("statIncome")}
+          value={formatMoney(income, currency, locale)}
           sub={currency}
         />
         <StatCard
           icon={<TrendingDown className="h-4 w-4 text-destructive" />}
-          label="Pengeluaran"
-          value={formatMoney(expense, currency)}
+          label={t("statExpense")}
+          value={formatMoney(expense, currency, locale)}
           sub={currency}
         />
         <StatCard
           icon={<Wallet className="h-4 w-4" />}
-          label="Net"
-          value={formatMoney(income - expense, currency)}
+          label={t("statNet")}
+          value={formatMoney(income - expense, currency, locale)}
           sub={currency}
         />
-        <StatCard
-        icon={<CalendarDays className="h-4 w-4 text-primary" />}
-        label="Anggaran Tersisa"
-          value={formatMoney(budgetSum - expense, currency)}
-          sub={currency}
+        <BudgetCard
+          budget={budget}
+          currency={currency}
+          locale={locale}
         />
       </div>
 
@@ -96,16 +93,16 @@ export default function DashboardView({
         {/* Line chart: monthly totals */}
         <Card>
           <CardHeader>
-            <CardTitle>Tren 6 Bulan</CardTitle>
-            <CardDescription>Pemasukan vs pengeluaran.</CardDescription>
+            <CardTitle>{t("trendTitle")}</CardTitle>
+            <CardDescription>{t("trendDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {monthly.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Belum ada data transaksi.
+                {t("noData")}
               </p>
             ) : (
-              <MonthlyLine monthly={monthly} currency={currency} />
+              <MonthlyLine monthly={monthly} currency={currency} locale={locale} />
             )}
           </CardContent>
         </Card>
@@ -113,18 +110,18 @@ export default function DashboardView({
         {/* Pie: expense by category */}
         <Card>
           <CardHeader>
-            <CardTitle>Pengeluaran per Kategori</CardTitle>
+            <CardTitle>{t("catPieTitle")}</CardTitle>
             <CardDescription>
-              Bulan ini. {formatMoney(expense, currency)} total.
+              {t("catPieDesc", { total: formatMoney(expense, currency, locale) })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {byCategory.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Tidak ada pengeluaran.
+                {t("noExpenses")}
               </p>
             ) : (
-              <CategoryPie data={byCategory} currency={currency} />
+              <CategoryPie data={byCategory} currency={currency} locale={locale} />
             )}
           </CardContent>
         </Card>
@@ -134,26 +131,26 @@ export default function DashboardView({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Transaksi Terbaru</CardTitle>
+            <CardTitle>{t("recentTitle")}</CardTitle>
             <CardDescription>
-              5 transaksi terakhir.
+              {t("recentDesc")}
             </CardDescription>
           </div>
           <Link href="/transactions" className="text-sm font-medium underline">
-            Lihat semua
+            {t("seeAll")}
           </Link>
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Belum ada transaksi.{" "}
+              {t("noTransactions")}{" "}
               <Link href="/transactions" className="underline">
-                Tambahkan sekarang
+                {t("addNow")}
               </Link>
               .
             </p>
           ) : (
-            <RecentList items={recent} currency={currency} />
+            <RecentList items={recent} currency={currency} locale={locale} />
           )}
         </CardContent>
       </Card>
@@ -169,7 +166,7 @@ function StatCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
   sub: string;
 }) {
   return (
@@ -188,16 +185,91 @@ function StatCard({
   );
 }
 
+function BudgetCard({
+  budget,
+  currency,
+  locale,
+}: {
+  budget: { totalBudget: number; spent: number; remaining: number };
+  currency: string;
+  locale: string;
+}) {
+  const { t } = useI18n();
+  const { totalBudget, spent, remaining } = budget;
+
+  if (totalBudget === 0) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <CalendarDays className="h-4 w-4 text-primary" />
+            {t("statBudgetLeft")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-base text-muted-foreground">
+            {t("noBudgetSet")}
+          </div>
+          <Link href="/categories" className="mt-1 block text-xs underline">
+            {t("setBudget")}
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const over = remaining < 0;
+  const pct = Math.min(100, (spent / totalBudget) * 100);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          {t("statBudgetLeft")}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          className={
+            "text-2xl font-bold " + (over ? "text-destructive" : "")
+          }
+        >
+          {over ? "- " : ""}
+          {formatMoney(Math.abs(remaining), currency, locale)}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t("budgetUsedOf", {
+            spent: formatMoney(spent, currency, locale),
+            total: formatMoney(totalBudget, currency, locale),
+          })}
+        </p>
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={
+              "h-full rounded-full " +
+              (over ? "bg-destructive" : "bg-positive")
+            }
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ChartTooltip({
   active,
   payload,
   label,
   currency,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
   currency: string;
+  locale: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -211,7 +283,7 @@ function ChartTooltip({
           />
           <span className="text-muted-foreground">{entry.name}</span>
           <span className="ml-auto font-medium text-foreground">
-            {formatMoney(entry.value, currency)}
+            {formatMoney(entry.value, currency, locale)}
           </span>
         </div>
       ))}
@@ -222,17 +294,23 @@ function ChartTooltip({
 function MonthlyLine({
   monthly,
   currency,
+  locale,
 }: {
   monthly: MonthlyPt[];
   currency: string;
+  locale: string;
 }) {
+  const { t } = useI18n();
+  const lc = langCode(locale);
+  const incomeKey = t("income");
+  const expenseKey = t("expense");
   const data = monthly.map((m) => ({
-    month: new Date(`${m.month}-02`).toLocaleDateString("id-ID", {
+    month: new Date(`${m.month}-02`).toLocaleDateString(lc, {
       month: "short",
       year: "2-digit",
     }),
-    Pemasukan: m.income,
-    Pengeluaran: m.expense,
+    [incomeKey]: m.income,
+    [expenseKey]: m.expense,
   }));
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -248,17 +326,17 @@ function MonthlyLine({
           axisLine={false}
           tickLine={false}
           tickFormatter={(v) =>
-            new Intl.NumberFormat("id-ID", {
+            new Intl.NumberFormat(lc, {
               notation: "compact",
               maximumFractionDigits: 0,
             }).format(v)
           }
           tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
         />
-        <Tooltip content={<ChartTooltip currency={currency} />} />
+        <Tooltip content={<ChartTooltip currency={currency} locale={locale} />} />
         <Line
           type="monotone"
-          dataKey="Pemasukan"
+          dataKey={incomeKey}
           stroke={CHART_COLORS.income}
           strokeWidth={2.5}
           dot={{ r: 3, fill: CHART_COLORS.income }}
@@ -266,7 +344,7 @@ function MonthlyLine({
         />
         <Line
           type="monotone"
-          dataKey="Pengeluaran"
+          dataKey={expenseKey}
           stroke={CHART_COLORS.expense}
           strokeWidth={2.5}
           dot={{ r: 3, fill: CHART_COLORS.expense }}
@@ -280,15 +358,18 @@ function MonthlyLine({
 function CategoryPie({
   data,
   currency,
+  locale,
 }: {
   data: CatAgg[];
   currency: string;
+  locale: string;
 }) {
+  const { t } = useI18n();
   return (
     <ResponsiveContainer width="100%" height={220}>
       <PieChart>
         <Tooltip
-          content={<ChartTooltip currency={currency} />}
+          content={<ChartTooltip currency={currency} locale={locale} />}
         />
         <Legend layout="vertical" verticalAlign="middle" align="right" />
         <Pie
@@ -303,7 +384,7 @@ function CategoryPie({
           stroke="var(--card)"
           strokeWidth={2}
           label={({ name, percent }: { name?: string; percent?: number }) =>
-            `${name ?? "Kategori"} ${((percent ?? 0) * 100).toFixed(0)}%`
+            `${name ?? t("categoryLabel")} ${((percent ?? 0) * 100).toFixed(0)}%`
           }
         >
           {data.map((e, i) => (
@@ -321,10 +402,13 @@ function CategoryPie({
 function RecentList({
   items,
   currency,
+  locale,
 }: {
   items: TransactionWithCategory[];
   currency: string;
+  locale: string;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-2">
       {items.map((tx) => {
@@ -341,7 +425,7 @@ function RecentList({
                   backgroundColor: tx.category?.color ?? "var(--muted-foreground)",
                 }}
               />
-              <span className="text-sm">{tx.description ?? "Tanpa keterangan"}</span>
+              <span className="text-sm">{tx.description ?? t("noDescription")}</span>
               <span className="text-xs text-muted-foreground">
                 {tx.category?.name ?? "—"}
               </span>
@@ -353,7 +437,7 @@ function RecentList({
               }
             >
               {isIncome ? "+ " : "- "}
-              {formatMoney(tx.amount, currency)}
+              {formatMoney(tx.amount, currency, locale)}
             </div>
           </div>
         );

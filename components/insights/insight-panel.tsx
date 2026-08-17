@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Sparkles, Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/client";
 
 export function InsightPanel({
   context,
@@ -18,6 +19,7 @@ export function InsightPanel({
   context: string;
   presetPrompts: Array<{ label: string; prompt: string }>;
 }) {
+  const { t } = useI18n();
   const [insight, setInsight] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState("");
@@ -47,7 +49,7 @@ export function InsightPanel({
       }
 
       const reader = res.body?.getReader();
-      if (!reader) throw new Error("Tidak dapat membaca stream.");
+      if (!reader) throw new Error(t("streamError"));
 
       const decoder = new TextDecoder();
       let text = "";
@@ -61,7 +63,7 @@ export function InsightPanel({
       setError(
         e instanceof Error
           ? e.message
-          : "Gagal mendapatkan insight. Cek POOLSIDE_API_KEY / env."
+          : t("insightError")
       );
     } finally {
       setIsStreaming(false);
@@ -88,11 +90,10 @@ export function InsightPanel({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            Insight AI
+            {t("insightTitle")}
           </CardTitle>
           <CardDescription>
-            Insight disesuaikan dengan data transaksi Anda (gunakan Poolside
-            API).
+            {t("insightDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,7 +105,7 @@ export function InsightPanel({
               <p className="text-destructive">{error}</p>
             ) : insight === "" ? (
               <p className="text-muted-foreground">
-                Klik salah satu tombol di atas untuk menghasilkan insight.
+                {t("clickPrompt")}
               </p>
             ) : (
               insight
@@ -119,7 +120,7 @@ export function InsightPanel({
       {isStreaming && (
         <p className="text-xs text-muted-foreground">
           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-          Menyusun insight…
+          {t("generating")}
         </p>
       )}
     </div>
