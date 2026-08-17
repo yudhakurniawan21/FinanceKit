@@ -62,6 +62,8 @@ const idDict = {
   colActions: "Aksi",
   filterAccount: "Semua akun",
   noTransactionsYet: "Belum ada transaksi",
+  txLimitNote:
+    "Menampilkan {count} transaksi terbaru — gunakan filter tanggal atau ekspor CSV untuk data lengkap.",
   noResults: "Tidak ada hasil",
   startTracking: "Mulai catat pemasukan dan pengeluaran Anda.",
   tryChangingFilters: "Coba ubah filter atau kata kunci pencarian.",
@@ -112,15 +114,12 @@ const idDict = {
   colorLabel: "Warna",
   customColor: "Warna kustom",
   noCategories: "Belum ada kategori {type}.",
-  catIncomeShort: "Masuk",
-  catExpenseShort: "Keluar",
   edit: "Edit",
   editCategoryTitle: "Edit Kategori",
   editCategoryDesc: "Perbarui nama, ikon, atau warna kategori.",
   deleteCatTitle: "Hapus kategori?",
   deleteCatDesc:
     'Kategori "{name}" akan dihapus. Transaksi yang sudah ada tidak akan dihapus, tetapi kategori-nya menjadi tidak terikat.',
-  budgetSrOnly: "Anggaran",
 
   // ── Akun (rekening/dompet) ────────────────────────────
   accountsPageDesc:
@@ -168,7 +167,6 @@ const idDict = {
   freqYearly: "Tahunan",
   startDateLabel: "Tanggal mulai",
   nextRunLabel: "Jadwal berikutnya",
-  lastRunLabel: "Terakhir dijalankan",
   activeLabel: "Aktif",
   processNow: "Proses Sekarang",
   processedCount: "{count} transaksi berulang berhasil dibuat.",
@@ -193,7 +191,6 @@ const idDict = {
   goalNamePlaceholder: "cth. Dana Darurat",
   targetLabel: "Target",
   deadlineLabel: "Tenggat (opsional)",
-  currentLabel: "Terkumpul",
   remainingLabel: "Sisa",
   goalProgress: "Terkumpul {current} dari {target}",
   achieved: "Tercapai!",
@@ -234,7 +231,6 @@ const idDict = {
   netWorthItemNamePlaceholder: "mis. Reksa dana, KPR, …",
   netWorthItemValueLabel: "Nilai",
   netWorthItemValuePlaceholder: "Nilai saat ini",
-  netWorthTypeLabel: "Jenis",
   netWorthTrendTitle: "Tren Net Worth",
   netWorthTrendDesc: "90 hari terakhir.",
   netWorthTrendEmpty:
@@ -294,6 +290,7 @@ const idDict = {
   confirmDeleteAccount:
     "Yakin ingin menghapus akun secara permanen?",
   yesDeleteAccount: "Ya, hapus akun saya",
+  typeEmailToConfirm: "Ketik email Anda untuk konfirmasi:",
 
   // ── AI Insights ──────────────────────────────────────
   insightsPageDesc:
@@ -311,6 +308,8 @@ const idDict = {
   presetSave: "Saran Hemat",
   presetBudget: "Cek vs Anggaran",
   topCategories: "Kategori terbesar",
+  aiPrivacyNote:
+    "Data ringkasan transaksi Anda dikirim ke penyedia AI eksternal (Poolside) hanya saat Anda mengirim pertanyaan — tanpa riwayat chat tersimpan.",
   customPromptPlaceholder:
     "Tulis pertanyaan bebas tentang keuanganmu…",
   askAI: "Tanya AI",
@@ -341,6 +340,7 @@ const idDict = {
   errTxId: "ID transaksi tidak ditemukan.",
   errSettingsInvalid: "Data pengaturan tidak valid. Periksa kembali.",
   errDeleteAccount: "Gagal menghapus akun. Coba lagi.",
+  errEmailMismatch: "Email konfirmasi tidak sesuai.",
 } as const;
 
 export type DictKey = keyof typeof idDict;
@@ -402,6 +402,8 @@ export const enDict: Dict = {
   colActions: "Actions",
   filterAccount: "All accounts",
   noTransactionsYet: "No transactions yet",
+  txLimitNote:
+    "Showing {count} most recent transactions — use date filters or CSV export for the full history.",
   noResults: "No results",
   startTracking: "Start tracking your income and expenses.",
   tryChangingFilters: "Try changing the filters or search keywords.",
@@ -451,15 +453,12 @@ export const enDict: Dict = {
   colorLabel: "Color",
   customColor: "Custom color",
   noCategories: "No {type} categories yet.",
-  catIncomeShort: "In",
-  catExpenseShort: "Out",
   edit: "Edit",
   editCategoryTitle: "Edit Category",
   editCategoryDesc: "Update the category name, icon, or color.",
   deleteCatTitle: "Delete category?",
   deleteCatDesc:
     'Category "{name}" will be deleted. Existing transactions will not be deleted, but their category will become unlinked.',
-  budgetSrOnly: "Budget",
 
   accountsPageDesc:
     "Manage your cash, bank, and e-wallet accounts. Balances are calculated automatically from transactions & transfers.",
@@ -505,7 +504,6 @@ export const enDict: Dict = {
   freqYearly: "Yearly",
   startDateLabel: "Start date",
   nextRunLabel: "Next run",
-  lastRunLabel: "Last run",
   activeLabel: "Active",
   processNow: "Process Now",
   processedCount: "{count} recurring transactions created.",
@@ -527,7 +525,6 @@ export const enDict: Dict = {
   goalNamePlaceholder: "e.g. Emergency Fund",
   targetLabel: "Target",
   deadlineLabel: "Deadline (optional)",
-  currentLabel: "Saved",
   remainingLabel: "Remaining",
   goalProgress: "Saved {current} of {target}",
   achieved: "Achieved!",
@@ -566,7 +563,6 @@ export const enDict: Dict = {
   netWorthItemNamePlaceholder: "e.g. Mutual fund, mortgage, …",
   netWorthItemValueLabel: "Value",
   netWorthItemValuePlaceholder: "Current value",
-  netWorthTypeLabel: "Type",
   netWorthTrendTitle: "Net Worth Trend",
   netWorthTrendDesc: "Last 90 days.",
   netWorthTrendEmpty:
@@ -624,6 +620,7 @@ export const enDict: Dict = {
   confirmDeleteAccount:
     "Are you sure you want to permanently delete your account?",
   yesDeleteAccount: "Yes, delete my account",
+  typeEmailToConfirm: "Type your email to confirm:",
 
   insightsPageDesc:
     "Financial insights based on your transaction data — powered by Poolside (poolside/laguna-s-2.1).",
@@ -638,6 +635,8 @@ export const enDict: Dict = {
   presetSave: "Saving Tips",
   presetBudget: "Budget Check",
   topCategories: "Top categories",
+  aiPrivacyNote:
+    "A summary of your transactions is sent to an external AI provider (Poolside) only when you submit a question — no chat history is stored.",
   customPromptPlaceholder: "Ask anything about your finances…",
   askAI: "Ask AI",
   copyInsight: "Copy insight",
@@ -664,6 +663,7 @@ export const enDict: Dict = {
   errTxId: "Transaction ID not found.",
   errSettingsInvalid: "Invalid settings data. Please check again.",
   errDeleteAccount: "Failed to delete account. Try again.",
+  errEmailMismatch: "Confirmation email does not match.",
 };
 
 export const deDict: Dict = {
@@ -723,6 +723,8 @@ export const deDict: Dict = {
   colActions: "Aktionen",
   filterAccount: "Alle Konten",
   noTransactionsYet: "Noch keine Transaktionen",
+  txLimitNote:
+    "Zeigt die {count} neuesten Transaktionen — nutzen Sie Datumsfilter oder den CSV-Export für den vollständigen Verlauf.",
   noResults: "Keine Ergebnisse",
   startTracking: "Beginnen Sie, Einnahmen und Ausgaben zu erfassen.",
   tryChangingFilters: "Ändern Sie Filter oder Suchbegriffe.",
@@ -772,15 +774,12 @@ export const deDict: Dict = {
   colorLabel: "Farbe",
   customColor: "Benutzerdefinierte Farbe",
   noCategories: "Noch keine {type}-Kategorien.",
-  catIncomeShort: "Ein",
-  catExpenseShort: "Aus",
   edit: "Bearbeiten",
   editCategoryTitle: "Kategorie bearbeiten",
   editCategoryDesc: "Aktualisieren Sie Name, Icon oder Farbe der Kategorie.",
   deleteCatTitle: "Kategorie löschen?",
   deleteCatDesc:
     'Kategorie "{name}" wird gelöscht. Bestehende Transaktionen bleiben erhalten, aber die Kategorie wird nicht mehr verknüpft.',
-  budgetSrOnly: "Budget",
 
   accountsPageDesc:
     "Verwalten Sie Ihre Bargeld-, Bank- und E-Wallet-Konten. Salden werden automatisch aus Transaktionen & Überweisungen berechnet.",
@@ -827,7 +826,6 @@ export const deDict: Dict = {
   freqYearly: "Jährlich",
   startDateLabel: "Startdatum",
   nextRunLabel: "Nächste Ausführung",
-  lastRunLabel: "Letzte Ausführung",
   activeLabel: "Aktiv",
   processNow: "Jetzt verarbeiten",
   processedCount: "{count} wiederkehrende Transaktionen erstellt.",
@@ -850,7 +848,6 @@ export const deDict: Dict = {
   goalNamePlaceholder: "z. B. Notgroschen",
   targetLabel: "Ziel",
   deadlineLabel: "Fälligkeitsdatum (optional)",
-  currentLabel: "Gespart",
   remainingLabel: "Verbleibend",
   goalProgress: "Gespart {current} von {target}",
   achieved: "Erreicht!",
@@ -891,7 +888,6 @@ export const deDict: Dict = {
   netWorthItemNamePlaceholder: "z. B. Investmentfonds, Hypothek, …",
   netWorthItemValueLabel: "Wert",
   netWorthItemValuePlaceholder: "Aktueller Wert",
-  netWorthTypeLabel: "Typ",
   netWorthTrendTitle: "Vermögensentwicklung",
   netWorthTrendDesc: "Letzte 90 Tage.",
   netWorthTrendEmpty:
@@ -949,6 +945,7 @@ export const deDict: Dict = {
   confirmDeleteAccount:
     "Möchten Sie Ihr Konto wirklich dauerhaft löschen?",
   yesDeleteAccount: "Ja, mein Konto löschen",
+  typeEmailToConfirm: "Geben Sie Ihre E-Mail-Adresse zur Bestätigung ein:",
 
   insightsPageDesc:
     "Finanzielle Einblicke basierend auf Ihren Transaktionsdaten — unterstützt durch Poolside (poolside/laguna-s-2.1).",
@@ -965,6 +962,8 @@ export const deDict: Dict = {
   presetSave: "Spartipps",
   presetBudget: "Budget-Check",
   topCategories: "Größte Kategorien",
+  aiPrivacyNote:
+    "Eine Zusammenfassung Ihrer Transaktionen wird nur dann an einen externen KI-Anbieter (Poolside) gesendet, wenn Sie eine Frage stellen — es wird kein Chatverlauf gespeichert.",
   customPromptPlaceholder:
     "Stellen Sie eine freie Frage zu Ihren Finanzen…",
   askAI: "KI fragen",
@@ -992,6 +991,7 @@ export const deDict: Dict = {
   errTxId: "Transaktions-ID nicht gefunden.",
   errSettingsInvalid: "Ungültige Einstellungsdaten. Bitte erneut prüfen.",
   errDeleteAccount: "Konto konnte nicht gelöscht werden. Versuchen Sie es erneut.",
+  errEmailMismatch: "Die Bestätigungs-E-Mail stimmt nicht überein.",
 };
 
 export const DICTIONARIES: Record<string, Dict> = {

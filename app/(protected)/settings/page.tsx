@@ -19,7 +19,7 @@ export default async function SettingsPage() {
           {t("settingsPageDesc")}
         </p>
       </div>
-      <SettingsForm settings={user.settings} />
+      <SettingsForm settings={user.settings} userEmail={user.user.email} />
     </div>
   );
 }

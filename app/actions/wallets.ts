@@ -39,6 +39,7 @@ export async function createWalletAction(
 
   revalidatePath("/accounts");
   revalidatePath("/transactions");
+  revalidatePath("/dashboard");
   await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
@@ -72,6 +73,7 @@ export async function updateWalletAction(
 
   revalidatePath("/accounts");
   revalidatePath("/transactions");
+  revalidatePath("/dashboard");
   await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
@@ -147,6 +149,8 @@ export async function createTransferAction(
   });
 
   revalidatePath("/accounts");
+  revalidatePath("/dashboard");
+  revalidatePath("/net-worth");
   await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
@@ -158,6 +162,8 @@ export async function deleteTransferAction(
   if (!session?.user) return { error: translate(null, "errSession") };
   await prisma.transfer.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/accounts");
+  revalidatePath("/dashboard");
+  revalidatePath("/net-worth");
   await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }

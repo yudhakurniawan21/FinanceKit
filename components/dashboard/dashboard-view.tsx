@@ -82,7 +82,7 @@ export default function DashboardView({
   return (
     <div className="space-y-6 p-4 pb-4 sm:p-6">
       <div className="flex items-baseline justify-between">
-        <h1 className="text-display-sm font-display">Dashboard</h1>
+        <h1 className="text-display-sm font-display">{t("navDashboard")}</h1>
         <span className="text-sm text-muted-foreground">{todayLabel}</span>
       </div>
 
@@ -96,7 +96,7 @@ export default function DashboardView({
             <Scale className="h-4 w-4" />
             {t("statNetWorth")}
           </p>
-          <span className="text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="text-xs font-medium text-foreground opacity-0 transition-opacity group-hover:opacity-100">
             {t("netWorthDetail")} →
           </span>
         </div>

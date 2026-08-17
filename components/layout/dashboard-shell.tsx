@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Avatar,
@@ -28,6 +28,7 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Logo } from "@/components/layout/logo";
 import { I18nProvider, useI18n } from "@/lib/i18n/client";
+import { langCode } from "@/lib/i18n";
 
 // Tipe pengguna minimal yang diterima dari server layout.
 interface AuthUser {
@@ -48,20 +49,31 @@ export default function DashboardShell({
 }) {
   return (
     <I18nProvider locale={locale}>
-      <ShellContent user={user}>{children}</ShellContent>
+      <ShellContent user={user} locale={locale}>{children}</ShellContent>
     </I18nProvider>
   );
 }
 
 function ShellContent({
   user,
+  locale,
   children,
 }: {
   user: AuthUser;
+  locale?: string | null;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
   const router = useRouter();
+  const lang = langCode(locale);
+
+  // Sinkronkan atribut lang <html> dengan locale pengguna (untuk screen
+  // reader / penerjemah). Hanya di app yang dilindungi; landing tetap "id".
+  useEffect(() => {
+    if (document.documentElement.lang !== lang) {
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -200,7 +212,7 @@ function ShellContent({
           </SheetContent>
         </Sheet>
 
-        <main className="flex-1 overflow-y-auto bg-muted pb-6 min-h-[calc(100dvh-theme(spacing.14))]">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-muted pb-6 min-h-[calc(100dvh-3.5rem)]">{children}</main>
       </div>
     </div>
   );

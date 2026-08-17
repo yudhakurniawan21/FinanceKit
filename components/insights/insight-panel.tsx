@@ -21,12 +21,7 @@ import {
   Send,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
-
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 15));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
+import { shiftMonth } from "@/lib/formatting";
 
 function renderInline(text: string): ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -198,6 +193,7 @@ export function InsightPanel({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={t("customPromptPlaceholder")}
+          aria-label={t("customPromptPlaceholder")}
           rows={2}
           className="min-h-[56px] w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           onKeyDown={(e) => {

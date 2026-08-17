@@ -172,7 +172,7 @@ export function RecurringManager({
                       <span
                         className={
                           "inline-block h-4 w-4 transform rounded-full bg-white transition-transform " +
-                          (rec.isActive ? "translate-x-[18px]" : "translate-x-0.5")
+                          (rec.isActive ? "translate-x-4.5" : "translate-x-0.5")
                         }
                       />
                       <span className="sr-only">{t("activeLabel")}</span>
@@ -409,6 +409,7 @@ function RecurringDialog({
                     key={o}
                     type="button"
                     onClick={() => setType(o)}
+                    aria-pressed={type === o}
                     className={
                       "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
                       (type === o

@@ -262,17 +262,17 @@ export default function Home() {
       <footer className="border-t border-white/10 bg-[#0e0f0c] text-white/60">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-4 py-10 sm:flex-row sm:items-center sm:px-6">
           <Logo className="text-white" markClassName="h-8 w-8" />
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <span className="flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-[#9fe870]" />
+          <div className="flex flex-col items-start gap-y-2 text-sm sm:flex-row sm:items-center sm:gap-x-5 sm:gap-y-0">
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <TrendingUp className="h-4 w-4 shrink-0 text-[#9fe870]" />
               Pemasukan & pengeluaran
             </span>
-            <span className="flex items-center gap-1.5">
-              <Scale className="h-4 w-4 text-[#9fe870]" />
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <Scale className="h-4 w-4 shrink-0 text-[#9fe870]" />
               Net worth & anggaran
             </span>
-            <span className="flex items-center gap-1.5">
-              <TrendingDown className="h-4 w-4 text-[#ff6b6b]" />
+            <span className="flex items-center gap-1.5 whitespace-nowrap">
+              <TrendingDown className="h-4 w-4 shrink-0 text-[#ff6b6b]" />
               Transaksi berulang
             </span>
           </div>

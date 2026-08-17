@@ -62,3 +62,11 @@ export function monthBounds(
     end: new Date(Date.UTC(y, m, 0)),
   };
 }
+
+// Geser bulan pada string "YYYY-MM" (delta bulan, bisa negatif).
+// Dipakai untuk navigasi prev/next bulan di halaman laporan & insights.
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}

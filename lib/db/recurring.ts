@@ -6,6 +6,7 @@ import {
   addYears,
 } from "date-fns";
 import { recordNetWorthSnapshot } from "@/lib/db/net-worth";
+import { isUniqueViolation } from "@/lib/prisma";
 import type {
   RecurringFrequency,
   RecurringTransaction,
@@ -49,10 +50,13 @@ export async function listRecurring(
 
 // Generate transaksi nyata untuk semua jadwal yang jatuh tempo (≤ hari ini).
 // Idempoten via constraint unik (recurringId, date) + majukan nextRunDate
-// dalam satu $transaction per jadwal. Kap 36 iterasi per jadwal.
+// dalam satu $transaction per jadwal. Kap 36 iterasi per jadwal dan 100
+// jadwal per panggilan agar satu request tidak memproses ribuan baris.
 export async function processDueRecurring(userId: string): Promise<number> {
   const due = await prisma.recurringTransaction.findMany({
     where: { userId, isActive: true, nextRunDate: { lte: new Date() } },
+    orderBy: { nextRunDate: "asc" },
+    take: 100,
   });
   if (due.length === 0) return 0;
 
@@ -87,25 +91,50 @@ export async function processDueRecurring(userId: string): Promise<number> {
     }
     if (batch.length === 0) continue;
 
-    await prisma.$transaction([
-      ...batch.map((t) =>
-        prisma.transaction.create({
+    try {
+      await prisma.$transaction([
+        ...batch.map((t) =>
+          prisma.transaction.create({
+            data: {
+              userId,
+              recurringId: rec.id,
+              ...t,
+            },
+          })
+        ),
+        prisma.recurringTransaction.update({
+          where: { id: rec.id },
           data: {
-            userId,
-            recurringId: rec.id,
-            ...t,
+            nextRunDate: runDate,
+            lastRunDate: batch[batch.length - 1].date,
           },
-        })
-      ),
-      prisma.recurringTransaction.update({
-        where: { id: rec.id },
-        data: {
-          nextRunDate: runDate,
-          lastRunDate: batch[batch.length - 1].date,
-        },
-      }),
-    ]);
-    created += batch.length;
+        }),
+      ]);
+      created += batch.length;
+    } catch (err) {
+      // Race: request lain memproses jadwal yang sama dan kalah unik constraint.
+      if (isUniqueViolation(err)) {
+        const latest = await prisma.recurringTransaction.findUnique({
+          where: { id: rec.id },
+          select: { nextRunDate: true },
+        });
+        const advanced =
+          latest && latest.nextRunDate.getTime() !== rec.nextRunDate.getTime();
+        if (!advanced) {
+          // nextRunDate belum berubah → majukan manual agar request berikutnya
+          // tidak mengulang generate yang gagal.
+          await prisma.recurringTransaction.update({
+            where: { id: rec.id },
+            data: {
+              nextRunDate: runDate,
+              lastRunDate: batch[batch.length - 1].date,
+            },
+          });
+        }
+        continue;
+      }
+      throw err;
+    }
   }
 
   // Transaksi baru mengubah saldo → perbarui snapshot net worth hari ini.

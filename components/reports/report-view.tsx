@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/currencies";
 import { useI18n } from "@/lib/i18n/client";
 import { langCode } from "@/lib/i18n";
+import { shiftMonth } from "@/lib/formatting";
 import { TrendingUp, TrendingDown, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Agg = {
@@ -30,12 +31,6 @@ type Agg = {
   amount: number;
   budget: number | null;
 };
-
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 15));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
 
 export function ReportView({
   month,

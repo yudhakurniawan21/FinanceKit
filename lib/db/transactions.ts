@@ -247,24 +247,28 @@ export async function categoryTotals(
 }
 
 // Pengeluaran per hari (minor unit), utk bar chart laporan bulanan.
+// Pakai raw SQL GROUP BY agar tidak memuat semua baris transaksi ke memori.
 export async function dailyTotals(
   userId: string,
   start: Date,
   end: Date
 ): Promise<Array<{ date: Date; amount: number }>> {
-  const rows = await prisma.transaction.findMany({
-    where: { userId, type: "EXPENSE", date: { gte: start, lte: end } },
-    select: { date: true, amount: true },
-  });
-  const map = new Map<string, number>();
-  for (const r of rows) {
-    const key = r.date.toISOString().slice(0, 10);
-    map.set(key, (map.get(key) ?? 0) + r.amount);
-  }
-  return [...map.entries()]
-    .map(([key, amount]) => ({
-      date: new Date(`${key}T00:00:00Z`),
-      amount,
-    }))
-    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const rows = await prisma.$queryRaw<
+    Array<{ day: string; total: number }>
+  >`
+    SELECT
+      to_char("date", 'YYYY-MM-DD') AS day,
+      SUM("amount")::float AS total
+    FROM "transaction"
+    WHERE "userId" = ${userId}
+      AND "type" = 'EXPENSE'
+      AND "date" >= ${start}
+      AND "date" <= ${end}
+    GROUP BY day
+    ORDER BY day ASC
+  `;
+  return rows.map((r) => ({
+    date: new Date(`${r.day}T00:00:00Z`),
+    amount: Math.round(r.total),
+  }));
 }

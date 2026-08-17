@@ -222,6 +222,7 @@ model RecurringTransaction {
   updatedAt   DateTime            @updatedAt
   transactions Transaction[]
   @@index([userId, isActive])
+  @@index([isActive, nextRunDate])
   @@map("recurring_transaction")
 }
 
@@ -279,6 +280,5 @@ model NetWorthSnapshot {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())
   @@unique([userId, date])
-  @@index([userId, date])
   @@map("net_worth_snapshot")
 }

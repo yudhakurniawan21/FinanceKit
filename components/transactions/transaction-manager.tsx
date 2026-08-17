@@ -69,6 +69,7 @@ export function TransactionManager({
   timeZone,
   locale,
   wallets,
+  totalCount,
 }: {
   transactions: TransactionWithCategory[];
   categories: Category[];
@@ -77,6 +78,7 @@ export function TransactionManager({
   timeZone: string;
   locale: string;
   wallets: { id: string; name: string }[];
+  totalCount?: number;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -251,6 +253,7 @@ export function TransactionManager({
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t("search")}
+              aria-label={t("search")}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -324,6 +327,12 @@ export function TransactionManager({
           </span>
         </span>
       </div>
+
+      {totalCount !== undefined && totalCount > transactions.length && (
+        <p className="text-xs text-muted-foreground">
+          {t("txLimitNote", { count: formatNumber(totalCount, locale) })}
+        </p>
+      )}
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl bg-card py-14 text-center ring-1 ring-border">

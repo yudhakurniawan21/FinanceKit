@@ -356,6 +356,7 @@ function TypeField({
             key={t2}
             type="button"
             onClick={() => onChange(t2)}
+            aria-pressed={value === t2}
             className={
               "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
               (value === t2
@@ -373,10 +374,11 @@ function TypeField({
 }
 
 function IconField({ defaultValue = "Plus" }: { defaultValue?: string }) {
+  const { t } = useI18n();
   const [icon, setIcon] = useState(defaultValue);
   return (
     <div className="space-y-1">
-      <Label>Icon</Label>
+      <Label>{t("iconLabel")}</Label>
       <div className="flex items-center gap-2">
         <Select
           value={icon}
@@ -507,7 +509,7 @@ function CategoryGroup({
   onEdit,
   onDelete,
 }: CategoryGroupProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   if (!items.length) {
     return (
       <Card>
@@ -611,8 +613,8 @@ function CategoryGroup({
                     }
                   >
                     {t("budgetUsedOf", {
-                      spent: formatMoney(spent, currency),
-                      total: formatMoney(cat.budget ?? 0, currency),
+                      spent: formatMoney(spent, currency, locale),
+                      total: formatMoney(cat.budget ?? 0, currency, locale),
                     })}
                   </p>
                 </div>

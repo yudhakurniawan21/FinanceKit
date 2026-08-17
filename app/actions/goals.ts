@@ -38,6 +38,7 @@ export async function createGoalAction(
   });
 
   revalidatePath("/goals");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -71,6 +72,7 @@ export async function updateGoalAction(
   });
 
   revalidatePath("/goals");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -105,6 +107,7 @@ export async function adjustGoalAmountAction(
   });
 
   revalidatePath("/goals");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -115,6 +118,7 @@ export async function deleteGoalAction(
   if (!session?.user) return { error: translate(null, "errSession") };
   await prisma.goal.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/goals");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 

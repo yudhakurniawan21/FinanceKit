@@ -1,3 +1,4 @@
+import { cache } from "react";
 import prisma from "@/lib/prisma";
 import { type Wallet, type WalletType } from "@/lib/generated/prisma/client";
 
@@ -5,8 +6,11 @@ export type WalletWithBalance = Wallet & { balance: number };
 
 // Saldo dihitung dinamis: transaksi (income − expense) + transfer masuk − keluar.
 // Tidak ada kolom saldo tersimpan → bebas drift.
-export async function listWallets(userId: string): Promise<WalletWithBalance[]> {
-  const [wallets, txRows, trIn, trOut] = await Promise.all([
+// Dibungkus React.cache() agar dalam satu render server (mis. dashboard yang
+// memanggil listWallets + getNetWorthSummary→listWallets) query hanya jalan sekali.
+export const listWallets = cache(
+  async (userId: string): Promise<WalletWithBalance[]> => {
+    const [wallets, txRows, trIn, trOut] = await Promise.all([
     prisma.wallet.findMany({
       where: { userId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -43,13 +47,14 @@ export async function listWallets(userId: string): Promise<WalletWithBalance[]> 
   );
 
   return wallets.map((w) => ({
-    ...w,
-    balance:
-      (txBalance.get(w.id) ?? 0) +
-      (inMap.get(w.id) ?? 0) -
-      (outMap.get(w.id) ?? 0),
-  }));
-}
+      ...w,
+      balance:
+        (txBalance.get(w.id) ?? 0) +
+        (inMap.get(w.id) ?? 0) -
+        (outMap.get(w.id) ?? 0),
+    }));
+  }
+);
 
 export async function ensureDefaultWallet(userId: string): Promise<Wallet> {
   const existing = await prisma.wallet.findFirst({

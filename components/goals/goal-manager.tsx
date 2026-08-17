@@ -424,7 +424,7 @@ function AdjustDialog({
   onClose: () => void;
   currency: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [direction, setDirection] = useState<"DEPOSIT" | "WITHDRAW">("DEPOSIT");
   const [state, boundAction, isPending] = useActionState(
     adjustGoalAmountAction,
@@ -489,8 +489,8 @@ function AdjustDialog({
 
             <p className="text-xs text-muted-foreground">
               {t("goalProgress", {
-                current: formatMoney(goal.currentAmount, currency),
-                target: formatMoney(goal.targetAmount, currency),
+                current: formatMoney(goal.currentAmount, currency, locale),
+                target: formatMoney(goal.targetAmount, currency, locale),
               })}
             </p>
 

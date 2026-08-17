@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n/client";
 
 const themeScript = `
+document.documentElement.classList.add("js");
 try {
   var t = localStorage.getItem("theme");
   if (t === "dark" || (!t && window.matchMedia("(prefers-color-scheme: dark)").matches)) {

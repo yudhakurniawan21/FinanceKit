@@ -173,6 +173,10 @@ export default async function InsightsPage({
         </div>
       )}
 
+      <p className="rounded-xl bg-muted/60 px-4 py-2.5 text-xs text-muted-foreground">
+        {t("aiPrivacyNote")}
+      </p>
+
       <InsightPanel
         key={month}
         context={context}

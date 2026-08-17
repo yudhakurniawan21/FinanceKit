@@ -449,7 +449,7 @@ function NetWorthItemRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const isLiability = item.type === "LIABILITY";
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-muted/50">
@@ -471,7 +471,7 @@ function NetWorthItemRow({
             (isLiability ? "text-destructive" : "")
           }
         >
-          {formatMoney(item.value, currency)}
+          {formatMoney(item.value, currency, locale)}
         </span>
         <Button variant="ghost" size="sm" onClick={onEdit}>
           <Pencil className="h-4 w-4" />

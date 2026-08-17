@@ -157,6 +157,7 @@ export function TransactionDialog({
                     key={o.value}
                     type="button"
                     onClick={() => setType(o.value)}
+                    aria-pressed={type === o.value}
                     className={
                       "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
                       (type === o.value

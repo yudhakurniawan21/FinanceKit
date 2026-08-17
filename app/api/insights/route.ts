@@ -3,12 +3,16 @@ import type { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { streamInsight, testPoolsideKey, isFinancialQuestion, OUT_OF_SCOPE_REPLY } from "@/lib/ai";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const MAX_PROMPT_LENGTH = 2000;
 const MAX_CONTEXT_LENGTH = 20_000;
+
+// 10 permintaan/menit per user (API berbayar; batasi biaya).
+const RATE = { capacity: 10, refillPerSecond: 10 / 60 };
 
 async function requireAuth(): Promise<string | null> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -34,6 +38,13 @@ export async function POST(request: NextRequest) {
   const userId = await requireAuth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!rateLimit(`insights:${userId}`, RATE)) {
+    return NextResponse.json(
+      { error: "Terlalu banyak permintaan. Coba lagi sebentar lagi." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
   }
 
   const body = await request

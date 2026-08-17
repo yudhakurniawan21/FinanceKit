@@ -6,7 +6,7 @@ import OpenAI from "openai";
 // ubah POOLSIDE_BASE_URL ke "https://ai-gateway.vercel.sh" — lihat lib/ai.ts:detectBaseURL.
 let _client: OpenAI | null = null;
 
-export function getPoolsideClient(): OpenAI {
+function getPoolsideClient(): OpenAI {
   const apiKey = process.env.POOLSIDE_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -24,7 +24,7 @@ export function getPoolsideClient(): OpenAI {
   return _client;
 }
 
-export const POOLSIDE_MODEL = process.env.POOLSIDE_MODEL || "poolside/laguna-s-2.1";
+const POOLSIDE_MODEL = process.env.POOLSIDE_MODEL || "poolside/laguna-s-2.1";
 
 const SYSTEM_PROMPT = [
   "Anda adalah FinansialKit AI, asisten perencanaan keuangan pribadi yang cerdas dan ramah.",
@@ -103,29 +103,6 @@ export async function* streamInsight(
     const content = chunk.choices?.[0]?.delta?.content ?? "";
     if (content) yield content;
   }
-}
-
-/**
- * Non-streaming helper (mengembalikan teks penuh).
- */
-export async function generateInsight(
-  prompt: string,
-  context: string = ""
-): Promise<string> {
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...(context ? [{ role: "user" as const, content: `DATA KONTEXT:\n${context}` }] : []),
-    { role: "user", content: prompt },
-  ];
-
-  const res = await getPoolsideClient().chat.completions.create({
-    model: POOLSIDE_MODEL,
-    messages,
-    temperature: 0.4,
-    max_tokens: 700,
-  });
-
-  return res.choices?.[0]?.message?.content ?? "";
 }
 
 /** Uji konektivitas / keabsahan API key. */

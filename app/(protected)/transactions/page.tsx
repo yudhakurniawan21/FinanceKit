@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/session";
 import { ensureDefaultCategories } from "@/lib/db/categories";
 import { ensureDefaultWallet, listWallets } from "@/lib/db/wallets";
 import { listTransactions } from "@/lib/db/transactions";
+import prisma from "@/lib/prisma";
 import { processDueRecurring } from "@/lib/db/recurring";
 import { TransactionManager } from "@/components/transactions/transaction-manager";
 import { createTranslator } from "@/lib/i18n";
@@ -13,12 +14,16 @@ export default async function TransactionsPage() {
     redirect("/sign-in?callbackUrl=/transactions");
   }
 
-  const [categories, transactions, wallets] = await Promise.all([
+  const LIMIT = 500;
+
+  const [categories, transactions, wallets, totalCount] = await Promise.all([
     ensureDefaultCategories(user.user.id),
-    listTransactions(user.user.id),
+    listTransactions(user.user.id, { limit: LIMIT }),
     ensureDefaultWallet(user.user.id).then(() => listWallets(user.user.id)),
     // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
-    processDueRecurring(user.user.id),
+    processDueRecurring(user.user.id).then(() =>
+      prisma.transaction.count({ where: { userId: user.user.id } })
+    ),
   ]);
 
   const currency = user.settings?.currency ?? "IDR";
@@ -43,6 +48,7 @@ export default async function TransactionsPage() {
         timeZone={timeZone}
         locale={locale}
         wallets={wallets.map((w) => ({ id: w.id, name: w.name }))}
+        totalCount={totalCount}
       />
     </div>
   );

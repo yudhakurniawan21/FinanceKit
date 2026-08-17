@@ -323,7 +323,7 @@ function WalletDialog({
   wallet?: WalletWithBalance | null;
   currency: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [type, setType] = useState<WalletType>(
     (wallet?.type as WalletType) ?? "CASH"
   );
@@ -383,6 +383,7 @@ function WalletDialog({
                     key={w}
                     type="button"
                     onClick={() => setType(w)}
+                    aria-pressed={type === w}
                     className={
                       "flex-1 rounded-md border px-2 py-2 text-xs font-medium " +
                       (type === w
@@ -422,7 +423,7 @@ function WalletDialog({
             {mode === "edit" && wallet && (
               <p className="text-xs text-muted-foreground">
                 {t("accountBalance")}:{" "}
-                {formatMoney(wallet.balance, currency)}
+                {formatMoney(wallet.balance, currency, locale)}
               </p>
             )}
 

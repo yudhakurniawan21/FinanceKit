@@ -55,11 +55,21 @@ export type DeleteAccountState = {
   error?: string;
 } | null;
 
-export async function deleteAccountAction(): Promise<DeleteAccountState> {
+export async function deleteAccountAction(
+  _prev: DeleteAccountState,
+  formData: FormData
+): Promise<DeleteAccountState> {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
   if (!userId) {
     return { error: translate(null, "errSessionLogin") };
+  }
+
+  // Konfirmasi ketik email (dicek lagi di server, bukan hanya UI).
+  const typed = String(formData.get("confirmEmail") ?? "").trim().toLowerCase();
+  const expected = (session.user.email ?? "").trim().toLowerCase();
+  if (!expected || typed !== expected) {
+    return { error: translate(null, "errEmailMismatch") };
   }
 
   try {

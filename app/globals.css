@@ -101,7 +101,7 @@
   --chart-4: #2ead4b;
   --chart-5: #ffd11a;
 
-  --positive: #2ead4b;
+  --positive: #1a6e30;
   --warning: #ffd11a;
   --negative: #d03238;
   --accent-cyan: #38c8ff;
@@ -153,6 +153,11 @@
   --chart-3: #9ca3af;
   --chart-4: #4ade80;
   --chart-5: #fde047;
+
+  --positive: #4ade80;
+  --warning: #fde047;
+  --negative: #ff6b6b;
+  --accent-cyan: #38c8ff;
 
   --sidebar: #163300;
   --sidebar-foreground: #e8ebe6;
@@ -243,7 +248,9 @@
    Landing page motion utilities (zero-dependency, CSS-only)
    ───────────────────────────────────────────────────────────── */
 @layer utilities {
-  .fk-reveal {
+  /* Gate: animasi hanya aktif bila JS berjalan (class .js ditambahkan via
+     script tema di <head>). Tanpa JS, konten tetap terlihat normal. */
+  .js .fk-reveal {
     opacity: 0;
     transform: translateY(28px);
     transition:
@@ -251,11 +258,11 @@
       transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: opacity, transform;
   }
-  .fk-reveal.is-visible {
+  .js .fk-reveal.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
-  .fk-hero-in {
+  .js .fk-hero-in {
     opacity: 0;
     transform: translateY(28px);
     animation: fk-hero-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -273,42 +280,42 @@
     transform-origin: bottom;
     animation: fk-bar-grow 1s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
-  .fk-chart-line {
+  .js .fk-chart-line {
     stroke-dasharray: 1200;
     stroke-dashoffset: 1200;
     animation: fk-dash 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
   }
-  .fk-chart-area {
+  .js .fk-chart-area {
     opacity: 0;
     animation: fk-fade-in 1.2s ease-in 1s forwards;
   }
-  .fk-chart-dot {
+  .js .fk-chart-dot {
     animation: fk-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s both;
   }
   .fk-pulse {
     animation: fk-pulse 2.4s ease-out infinite;
   }
   @media (prefers-reduced-motion: reduce) {
-    .fk-reveal {
+    .js .fk-reveal {
       opacity: 1;
       transform: none;
       transition: none;
     }
-    .fk-hero-in,
+    .js .fk-hero-in,
     .fk-float,
     .fk-float-slow,
     .fk-marquee-track,
     .fk-bar,
-    .fk-chart-line,
-    .fk-chart-area,
-    .fk-chart-dot,
+    .js .fk-chart-line,
+    .js .fk-chart-area,
+    .js .fk-chart-dot,
     .fk-pulse {
       animation: none !important;
     }
-    .fk-chart-line {
+    .js .fk-chart-line {
       stroke-dashoffset: 0;
     }
-    .fk-chart-area {
+    .js .fk-chart-area {
       opacity: 1;
     }
     .fk-bar {

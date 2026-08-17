@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -27,8 +28,10 @@ import type { UserSettings } from "@/lib/generated/prisma/client";
 
 export function SettingsForm({
   settings,
+  userEmail,
 }: {
   settings: UserSettings | null;
+  userEmail: string;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -38,6 +41,7 @@ export function SettingsForm({
     null
   );
   const [confirming, setConfirming] = useState(false);
+  const [typedEmail, setTypedEmail] = useState("");
 
   useEffect(() => {
     if (deleteState?.success) {
@@ -131,15 +135,36 @@ export function SettingsForm({
               {t("deleteAccount")}
             </Button>
           ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                {t("confirmDeleteAccount")}
-              </span>
+            <div className="flex w-full flex-col items-start gap-3 sm:flex-row sm:items-center">
               <form action={deleteAction} className="contents">
+                <label
+                  htmlFor="confirm-email"
+                  className="text-sm text-muted-foreground"
+                >
+                  {t("typeEmailToConfirm")}
+                </label>
+                <Input
+                  id="confirm-email"
+                  type="email"
+                  autoComplete="off"
+                  placeholder={userEmail}
+                  className="sm:w-72"
+                  value={typedEmail}
+                  onChange={(e) => setTypedEmail(e.target.value)}
+                  disabled={deletePending}
+                />
+                <input
+                  type="hidden"
+                  name="confirmEmail"
+                  value={typedEmail}
+                />
                 <Button
                   type="submit"
                   variant="destructive"
-                  disabled={deletePending}
+                  disabled={
+                    deletePending ||
+                    typedEmail.trim().toLowerCase() !== userEmail.toLowerCase()
+                  }
                 >
                   {deletePending ? t("deleting") : t("yesDeleteAccount")}
                 </Button>
@@ -148,7 +173,10 @@ export function SettingsForm({
                 type="button"
                 variant="ghost"
                 disabled={deletePending}
-                onClick={() => setConfirming(false)}
+                onClick={() => {
+                  setConfirming(false);
+                  setTypedEmail("");
+                }}
               >
                 {t("cancel")}
               </Button>

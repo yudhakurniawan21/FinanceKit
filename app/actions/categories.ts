@@ -51,6 +51,7 @@ export async function createCategoryAction(
 
   revalidatePath("/categories");
   revalidatePath("/transactions");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
@@ -111,6 +112,7 @@ export async function deleteCategoryAction(
   await prisma.category.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/categories");
   revalidatePath("/transactions");
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
