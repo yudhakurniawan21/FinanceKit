@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { WalletSchema, TransferSchema } from "@/lib/validation";
 import { majorToMinor } from "@/lib/currencies";
 import { translate } from "@/lib/i18n";
+import { recordNetWorthSnapshot } from "@/lib/db/net-worth";
 import { WalletType } from "@/lib/generated/prisma/client";
 
 export async function createWalletAction(
@@ -38,6 +39,7 @@ export async function createWalletAction(
 
   revalidatePath("/accounts");
   revalidatePath("/transactions");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 
@@ -70,6 +72,7 @@ export async function updateWalletAction(
 
   revalidatePath("/accounts");
   revalidatePath("/transactions");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 
@@ -93,6 +96,7 @@ export async function deleteWalletAction(
   revalidatePath("/accounts");
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 
@@ -143,6 +147,7 @@ export async function createTransferAction(
   });
 
   revalidatePath("/accounts");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 
@@ -153,6 +158,7 @@ export async function deleteTransferAction(
   if (!session?.user) return { error: translate(null, "errSession") };
   await prisma.transfer.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/accounts");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 

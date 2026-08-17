@@ -31,6 +31,8 @@ model User {
   transfers   Transfer[]
   recurringTransactions RecurringTransaction[]
   goals       Goal[]
+  netWorthItems NetWorthItem[]
+  netWorthSnapshots NetWorthSnapshot[]
 }
 
 model Session {
@@ -240,4 +242,43 @@ model Goal {
   updatedAt     DateTime  @updatedAt
   @@index([userId])
   @@map("goal")
+}
+
+// ── Aset & kewajiban net worth ─────────────────────────
+// Nilai diisi manual (investasi, properti, kendaraan, pinjaman, utang, dsb.).
+// Saldo dompet dihitung otomatis sebagai aset likuid (lihat lib/db/net-worth.ts).
+enum NetWorthType {
+  ASSET
+  LIABILITY
+}
+
+model NetWorthItem {
+  id        String       @id @default(cuid())
+  name      String
+  type      NetWorthType
+  value     Int          // minor unit — nilai saat ini (manual)
+  color     String?
+  icon      String?
+  sortOrder Int          @default(100)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  @@index([userId])
+  @@map("net_worth_item")
+}
+
+// Snapshot harian net worth untuk grafik tren. Satu baris per user per tanggal.
+model NetWorthSnapshot {
+  id                String   @id @default(cuid())
+  date              DateTime @db.Date
+  totalAssets       Int      // minor unit
+  totalLiabilities  Int      // minor unit
+  netWorth          Int      // minor unit
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("net_worth_snapshot")
 }

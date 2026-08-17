@@ -9,6 +9,7 @@ import {
 import { processDueRecurring } from "@/lib/db/recurring";
 import { listWallets } from "@/lib/db/wallets";
 import { listGoals } from "@/lib/db/goals";
+import { getNetWorthSummary } from "@/lib/db/net-worth";
 import { monthBounds, formatDate } from "@/lib/formatting";
 import DashboardView from "@/components/dashboard/dashboard-view";
 import { redirect } from "next/navigation";
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
   const { start: mStart, end: mEnd } = monthBounds(now, timeZone);
   const todayLabel = formatDate(now, dateFormat, timeZone, locale);
 
-  const [monthly, byCat, recent, stats, budget, wallets, goals] =
+  const [monthly, byCat, recent, stats, budget, wallets, goals, nw] =
     await Promise.all([
       monthlyTotals(user.user.id, 6, timeZone),
       expenseByCategory(user.user.id, mStart, mEnd),
@@ -36,6 +37,7 @@ export default async function DashboardPage() {
       budgetRemaining(user.user.id, mStart, mEnd),
       listWallets(user.user.id),
       listGoals(user.user.id),
+      getNetWorthSummary(user.user.id),
       // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
       processDueRecurring(user.user.id),
     ]);
@@ -57,6 +59,9 @@ export default async function DashboardPage() {
       recent={recent}
       wallets={wallets}
       goals={goals}
+      netWorth={nw.netWorth}
+      totalAssets={nw.totalAssets}
+      totalLiabilities={nw.totalLiabilities}
     />
   );
 }

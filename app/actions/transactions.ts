@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { TransactionSchema } from "@/lib/validation";
 import { majorToMinor } from "@/lib/currencies";
 import { translate } from "@/lib/i18n";
+import { recordNetWorthSnapshot } from "@/lib/db/net-worth";
 import { TransactionType, PaymentMethod } from "@/lib/generated/prisma/client";
 
 export async function createTransactionAction(
@@ -52,6 +53,7 @@ export async function createTransactionAction(
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   revalidatePath("/accounts");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 
@@ -100,6 +102,7 @@ export async function updateTransactionAction(
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   revalidatePath("/accounts");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 
@@ -112,6 +115,7 @@ export async function deleteTransactionAction(
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   revalidatePath("/accounts");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 

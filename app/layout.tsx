@@ -33,8 +33,9 @@ export default function RootLayout({
     <html lang="id" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script
-          dangerouslySetInnerHTML={{ __html: themeScript }}
+          type={typeof window === "undefined" ? "text/javascript" : "text/plain"}
           suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: themeScript }}
         />
       </head>
       <body className="h-full antialiased" suppressHydrationWarning>

@@ -5,6 +5,7 @@ import {
   addMonths,
   addYears,
 } from "date-fns";
+import { recordNetWorthSnapshot } from "@/lib/db/net-worth";
 import type {
   RecurringFrequency,
   RecurringTransaction,
@@ -105,6 +106,11 @@ export async function processDueRecurring(userId: string): Promise<number> {
       }),
     ]);
     created += batch.length;
+  }
+
+  // Transaksi baru mengubah saldo → perbarui snapshot net worth hari ini.
+  if (created > 0) {
+    await recordNetWorthSnapshot(userId);
   }
 
   return created;

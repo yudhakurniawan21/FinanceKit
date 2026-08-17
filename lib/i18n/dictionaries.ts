@@ -210,6 +210,43 @@ const idDict = {
   addGoalFirst: "Mulai dari target kecil — mis. dana darurat atau liburan.",
   errGoalInvalid: "Tujuan tabungan tidak valid.",
 
+  // ── Net Worth ─────────────────────────────────────────
+  navNetWorth: "Net Worth",
+  netWorthPageDesc:
+    "Pantau kekayaan bersih: aset likuid + aset lainnya dikurangi kewajiban.",
+  statNetWorth: "Net Worth",
+  totalAssets: "Total Aset",
+  totalLiabilities: "Total Kewajiban",
+  assetsLabel: "Aset",
+  liabilitiesLabel: "Kewajiban",
+  liquidAssetsLabel: "Aset likuid",
+  autoBadge: "Otomatis",
+  nwAsset: "Aset",
+  nwLiability: "Kewajiban",
+  addAsset: "Tambah Aset",
+  addLiability: "Tambah Kewajiban",
+  addNetWorthItemTitle: "Tambah {type}",
+  addNetWorthItemDesc:
+    "Catat nilai aset atau kewajiban yang tidak tercatat di saldo akun (mis. investasi, properti, pinjaman).",
+  editNetWorthItemTitle: "Edit {type}",
+  editNetWorthItemDesc: "Perbarui nama dan nilai item ini.",
+  netWorthItemNameLabel: "Nama",
+  netWorthItemNamePlaceholder: "mis. Reksa dana, KPR, …",
+  netWorthItemValueLabel: "Nilai",
+  netWorthItemValuePlaceholder: "Nilai saat ini",
+  netWorthTypeLabel: "Jenis",
+  netWorthTrendTitle: "Tren Net Worth",
+  netWorthTrendDesc: "90 hari terakhir.",
+  netWorthTrendEmpty:
+    "Belum ada riwayat — data terekam otomatis setiap ada perubahan.",
+  noNetWorthItems:
+    "Belum ada item. Tambahkan aset atau kewajiban untuk melengkapi net worth Anda.",
+  deleteNetWorthItemTitle: "Hapus item?",
+  deleteNetWorthItemDesc: 'Item "{name}" akan dihapus permanen.',
+  errNetWorthInvalid: "Item net worth tidak valid.",
+  netWorthDetail: "Lihat detail",
+  netWorthComposition: "Aset {assets} − Kewajiban {liabilities}",
+
   // ── Laporan bulanan ───────────────────────────────────
   navReports: "Laporan",
   reportsPageDesc:
@@ -500,6 +537,42 @@ export const enDict: Dict = {
   addGoalFirst: "Start with a small target — e.g. emergency fund or a trip.",
   errGoalInvalid: "Invalid savings goal.",
 
+  navNetWorth: "Net Worth",
+  netWorthPageDesc:
+    "Track your net worth: liquid assets plus other assets minus liabilities.",
+  statNetWorth: "Net Worth",
+  totalAssets: "Total Assets",
+  totalLiabilities: "Total Liabilities",
+  assetsLabel: "Assets",
+  liabilitiesLabel: "Liabilities",
+  liquidAssetsLabel: "Liquid assets",
+  autoBadge: "Auto",
+  nwAsset: "Asset",
+  nwLiability: "Liability",
+  addAsset: "Add Asset",
+  addLiability: "Add Liability",
+  addNetWorthItemTitle: "Add {type}",
+  addNetWorthItemDesc:
+    "Record the value of assets or liabilities not tracked in your account balances (e.g. investments, property, loans).",
+  editNetWorthItemTitle: "Edit {type}",
+  editNetWorthItemDesc: "Update the name and value of this item.",
+  netWorthItemNameLabel: "Name",
+  netWorthItemNamePlaceholder: "e.g. Mutual fund, mortgage, …",
+  netWorthItemValueLabel: "Value",
+  netWorthItemValuePlaceholder: "Current value",
+  netWorthTypeLabel: "Type",
+  netWorthTrendTitle: "Net Worth Trend",
+  netWorthTrendDesc: "Last 90 days.",
+  netWorthTrendEmpty:
+    "No history yet — data is recorded automatically on every change.",
+  noNetWorthItems:
+    "No items yet. Add assets or liabilities to complete your net worth.",
+  deleteNetWorthItemTitle: "Delete item?",
+  deleteNetWorthItemDesc: 'Item "{name}" will be permanently deleted.',
+  errNetWorthInvalid: "Invalid net worth item.",
+  netWorthDetail: "View details",
+  netWorthComposition: "Assets {assets} − Liabilities {liabilities}",
+
   navReports: "Reports",
   reportsPageDesc:
     "Monthly financial summary: comparisons, categories, and daily spending patterns.",
@@ -783,6 +856,42 @@ export const deDict: Dict = {
   addGoalFirst:
     "Beginnen Sie mit einem kleinen Ziel – z. B. Notgroschen oder Reise.",
   errGoalInvalid: "Ungültiges Sparziel.",
+
+  navNetWorth: "Vermögen",
+  netWorthPageDesc:
+    "Verfolgen Sie Ihr Nettovermögen: liquide Mittel plus weitere Vermögenswerte abzüglich Verbindlichkeiten.",
+  statNetWorth: "Vermögen",
+  totalAssets: "Gesamtvermögen",
+  totalLiabilities: "Gesamtverbindlichkeiten",
+  assetsLabel: "Vermögenswerte",
+  liabilitiesLabel: "Verbindlichkeiten",
+  liquidAssetsLabel: "Liquide Mittel",
+  autoBadge: "Automatisch",
+  nwAsset: "Vermögenswert",
+  nwLiability: "Verbindlichkeit",
+  addAsset: "Vermögenswert hinzufügen",
+  addLiability: "Verbindlichkeit hinzufügen",
+  addNetWorthItemTitle: "{type} hinzufügen",
+  addNetWorthItemDesc:
+    "Erfassen Sie den Wert von Vermögenswerten oder Verbindlichkeiten, die nicht in Ihren Kontoständen enthalten sind (z. B. Investitionen, Immobilien, Kredite).",
+  editNetWorthItemTitle: "{type} bearbeiten",
+  editNetWorthItemDesc: "Aktualisieren Sie Name und Wert dieses Eintrags.",
+  netWorthItemNameLabel: "Name",
+  netWorthItemNamePlaceholder: "z. B. Investmentfonds, Hypothek, …",
+  netWorthItemValueLabel: "Wert",
+  netWorthItemValuePlaceholder: "Aktueller Wert",
+  netWorthTypeLabel: "Typ",
+  netWorthTrendTitle: "Vermögensentwicklung",
+  netWorthTrendDesc: "Letzte 90 Tage.",
+  netWorthTrendEmpty:
+    "Noch kein Verlauf – Daten werden bei jeder Änderung automatisch erfasst.",
+  noNetWorthItems:
+    "Noch keine Einträge. Fügen Sie Vermögenswerte oder Verbindlichkeiten hinzu, um Ihr Nettovermögen zu vervollständigen.",
+  deleteNetWorthItemTitle: "Eintrag löschen?",
+  deleteNetWorthItemDesc: 'Eintrag "{name}" wird dauerhaft gelöscht.',
+  errNetWorthInvalid: "Ungültiger Vermögenseintrag.",
+  netWorthDetail: "Details anzeigen",
+  netWorthComposition: "Vermögen {assets} − Verbindlichkeiten {liabilities}",
 
   navReports: "Berichte",
   reportsPageDesc:

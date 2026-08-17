@@ -26,6 +26,7 @@ import { LogOut, Menu, Settings } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Logo } from "@/components/layout/logo";
 import { I18nProvider, useI18n } from "@/lib/i18n/client";
 
 // Tipe pengguna minimal yang diterima dari server layout.
@@ -76,8 +77,8 @@ function ShellContent({
     <div className="grid min-h-screen grid-rows-[auto_1fr] md:grid-cols-[240px_1fr]">
       {/* Desktop sidebar */}
       <aside className="hidden w-60 border-r bg-muted/30 md:sticky md:top-0 md:block md:h-dvh md:overflow-y-auto">
-        <div className="flex h-14 items-center border-b px-4 font-semibold">
-          FinansialKit
+        <div className="flex h-14 items-center border-b px-4">
+          <Logo />
         </div>
         <SidebarNav />
       </aside>
@@ -95,7 +96,7 @@ function ShellContent({
             <Menu className="h-5 w-5" />
           </Button>
 
-          <span className="font-semibold md:hidden">FinansialKit</span>
+          <Logo className="md:hidden" markClassName="h-6 w-6" />
 
           <div className="ml-auto flex items-center gap-3">
             <ThemeToggle />
@@ -191,7 +192,9 @@ function ShellContent({
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetContent side="left" className="w-64 p-0">
             <SheetHeader className="border-b p-4">
-              <SheetTitle>FinansialKit</SheetTitle>
+              <SheetTitle>
+                <Logo markClassName="h-6 w-6" />
+              </SheetTitle>
             </SheetHeader>
             <SidebarNav onItemClick={() => setDrawerOpen(false)} />
           </SheetContent>

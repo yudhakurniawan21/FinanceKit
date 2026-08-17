@@ -31,6 +31,7 @@ import {
   CalendarDays,
   PiggyBank,
   Landmark,
+  Scale,
 } from "lucide-react";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
 import type { WalletWithBalance } from "@/lib/db/wallets";
@@ -57,6 +58,9 @@ export default function DashboardView({
   recent,
   wallets,
   goals,
+  netWorth,
+  totalAssets,
+  totalLiabilities,
 }: {
   currency: string;
   todayLabel: string;
@@ -70,6 +74,9 @@ export default function DashboardView({
   recent: TransactionWithCategory[];
   wallets: WalletWithBalance[];
   goals: Goal[];
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
 }) {
   const { t, locale } = useI18n();
   return (
@@ -78,6 +85,36 @@ export default function DashboardView({
         <h1 className="text-display-sm font-display">Dashboard</h1>
         <span className="text-sm text-muted-foreground">{todayLabel}</span>
       </div>
+
+      {/* Net worth highlight */}
+      <Link
+        href="/net-worth"
+        className="group block rounded-xl bg-card p-5 ring-1 ring-border transition-colors hover:border-primary/50 hover:bg-accent/40"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Scale className="h-4 w-4" />
+            {t("statNetWorth")}
+          </p>
+          <span className="text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+            {t("netWorthDetail")} →
+          </span>
+        </div>
+        <p
+          className={
+            "mt-1 text-3xl font-semibold tabular-nums " +
+            (netWorth < 0 ? "text-destructive" : "")
+          }
+        >
+          {formatMoney(netWorth, currency, locale)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("netWorthComposition", {
+            assets: formatMoney(totalAssets, currency, locale),
+            liabilities: formatMoney(totalLiabilities, currency, locale),
+          })}
+        </p>
+      </Link>
 
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

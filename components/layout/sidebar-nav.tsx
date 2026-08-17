@@ -10,6 +10,7 @@ import {
   RefreshCcw,
   PiggyBank,
   FileChartColumn,
+  Scale,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import type { DictKey } from "@/lib/i18n/dictionaries";
@@ -25,6 +26,7 @@ const nav: Array<{
     | "navGoals"
     | "navReports"
     | "navInsights"
+    | "navNetWorth"
   >;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -37,6 +39,7 @@ const nav: Array<{
   { label: "navRecurring", href: "/recurring", icon: RefreshCcw, match: "/recurring" },
   { label: "navGoals", href: "/goals", icon: PiggyBank, match: "/goals" },
   { label: "navReports", href: "/reports", icon: FileChartColumn, match: "/reports" },
+  { label: "navNetWorth", href: "/net-worth", icon: Scale, match: "/net-worth" },
   { label: "navInsights", href: "/insights", icon: BarChart3, match: "/insights" },
 ];
 

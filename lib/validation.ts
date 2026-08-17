@@ -95,6 +95,16 @@ export const GoalAdjustSchema = z.object({
   direction: z.enum(["DEPOSIT", "WITHDRAW"]),
 });
 
+export const NetWorthItemSchema = z.object({
+  name: z.string().min(1, "Nama wajib diisi").max(50),
+  type: z.enum(["ASSET", "LIABILITY"]),
+  value: z.coerce
+    .number({ error: "Nilai harus angka" })
+    .nonnegative("Nilai tidak boleh negatif"),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+});
+
 export type TransactionInput = z.infer<typeof TransactionSchema>;
 export type CategoryInput = z.infer<typeof CategorySchema>;
 export type UserSettingsInput = z.infer<typeof UserSettingsSchema>;
