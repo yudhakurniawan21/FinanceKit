@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import {
   sumByType,
@@ -7,10 +8,15 @@ import {
 import { monthBounds } from "@/lib/formatting";
 import { formatMoney } from "@/lib/currencies";
 import { InsightPanel } from "@/components/insights/insight-panel";
-import { createTranslator } from "@/lib/i18n";
+import { createTranslator, langCode } from "@/lib/i18n";
 import { redirect } from "next/navigation";
+import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) {
     redirect("/sign-in?callbackUrl=/insights");
@@ -20,13 +26,58 @@ export default async function InsightsPage() {
   const locale = user.settings?.locale ?? "id-ID";
   const timeZone = user.settings?.timeZone ?? "Asia/Jakarta";
   const t = createTranslator(locale);
-  const { start: mStart, end: mEnd } = monthBounds(new Date(), timeZone);
+
+  const sp = await searchParams;
+  const rawMonth = sp.month ?? "";
+  const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth);
+
+  let year: number;
+  let monthIndex: number; // 0-based
+  if (valid) {
+    year = Number(rawMonth.slice(0, 4));
+    monthIndex = Number(rawMonth.slice(5, 7)) - 1;
+  } else {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(now);
+    const p: Record<string, string> = {};
+    for (const part of parts) {
+      if (part.type !== "literal") p[part.type] = part.value;
+    }
+    year = Number(p.year ?? now.getFullYear());
+    monthIndex = Number(p.month ?? "01") - 1;
+  }
+
+  const month = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+  const anchor = new Date(Date.UTC(year, monthIndex, 15));
+  const { start: mStart, end: mEnd } = monthBounds(anchor, timeZone);
+
+  const nowParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const nowP: Record<string, string> = {};
+  for (const part of nowParts) {
+    if (part.type !== "literal") nowP[part.type] = part.value;
+  }
+  const isCurrentMonth =
+    `${nowP.year}-${nowP.month}` === month;
 
   const [stats, byCat, recent] = await Promise.all([
     sumByType(user.user.id, mStart, mEnd),
     expenseByCategory(user.user.id, mStart, mEnd),
     listTransactions(user.user.id, { start: mStart, end: mEnd, limit: 8 }),
   ]);
+
+  const monthLabel = new Intl.DateTimeFormat(langCode(locale), {
+    timeZone,
+    month: "long",
+    year: "numeric",
+  }).format(anchor);
 
   const typeLabel = (txType: string) =>
     t(txType === "INCOME" ? "ctxTypeIncome" : "ctxTypeExpense");
@@ -67,6 +118,9 @@ export default async function InsightsPage() {
     },
   ];
 
+  const net = stats.income - stats.expense;
+  const topCategories = byCat.slice(0, 4);
+
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div>
@@ -75,7 +129,82 @@ export default async function InsightsPage() {
           {t("insightsPageDesc")}
         </p>
       </div>
-      <InsightPanel context={context} presetPrompts={presetPrompts} />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          icon={<TrendingUp className="h-5 w-5 text-positive" />}
+          label={t("statIncome")}
+          value={formatMoney(stats.income, currency, locale)}
+        />
+        <StatCard
+          icon={<TrendingDown className="h-5 w-5 text-destructive" />}
+          label={t("statExpense")}
+          value={formatMoney(stats.expense, currency, locale)}
+        />
+        <StatCard
+          icon={<Wallet className="h-5 w-5 text-primary" />}
+          label={t("statNet")}
+          value={formatMoney(net, currency, locale)}
+          valueClassName={net >= 0 ? "text-positive" : "text-destructive"}
+        />
+      </div>
+
+      {topCategories.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {t("topCategories")}:
+          </span>
+          {topCategories.map((c) => (
+            <Link
+              key={c.name}
+              href="/transactions"
+              className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-medium ring-1 ring-border transition-colors hover:ring-[#9fe870]/60"
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: c.color ?? undefined }}
+              />
+              {c.name}
+              <span className="font-semibold text-muted-foreground">
+                {formatMoney(c.amount, currency, locale)}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <InsightPanel
+        key={month}
+        context={context}
+        presetPrompts={presetPrompts}
+        month={month}
+        monthLabel={monthLabel}
+        isCurrentMonth={isCurrentMonth}
+      />
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  valueClassName,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-3xl bg-card p-4 ring-1 ring-border">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-xs text-muted-foreground">{label}</p>
+        <p className={`truncate font-bold ${valueClassName ?? ""}`}>{value}</p>
+      </div>
     </div>
   );
 }

@@ -27,12 +27,55 @@ export function getPoolsideClient(): OpenAI {
 export const POOLSIDE_MODEL = process.env.POOLSIDE_MODEL || "poolside/laguna-s-2.1";
 
 const SYSTEM_PROMPT = [
-  "Anda adalah FinansialKit AI, seorang asisten perencanaan keuangan pribadi yang cerdas dan ramah.",
-  "Anda hanya menjawab dalam Bahasa Indonesia (kecuali diminta lain).",
-  "Berikan insight finansial yang singkat, menggoda, dan dapat ditindaklanjuti berdasarkan data transaksi pengguna.",
-  "Fokus pada: pola pengeluaran, kategori yang melebihi anggaran, saran hemat, dan ramalan singkat.",
-  "Jika bertanya tentang hal di luar keuangan, arahkan kembali ke topik keuangan pribadi.",
+  "Anda adalah FinansialKit AI, asisten perencanaan keuangan pribadi yang cerdas dan ramah.",
+  "Anda HANYA membahas topik keuangan pribadi pengguna berdasarkan data transaksi yang diberikan: pola pengeluaran, kategori, anggaran, saran hemat, ringkasan bulanan, dan perencanaan keuangan.",
+  "Jawab dalam Bahasa Indonesia, kecuali pengguna menulis dalam bahasa lain — gunakan bahasa yang sama dengan pengguna.",
+  "Jika pertanyaan TIDAK berkaitan dengan keuangan pribadi (misalnya resep masakan, cuaca, kode program, pengetahuan umum, politik, hiburan, terjemahan, dll), JANGAN menjawab isi pertanyaan tersebut. Tolak dengan sopan dalam 1-2 kalimat dan arahkan kembali ke topik keuangan.",
+  "Jika data tidak cukup untuk menjawab, akui keterbatasan itu dan sarankan tindakan yang bisa dilakukan dengan data yang ada.",
+  "Jawaban singkat, jelas, dan dapat ditindaklanjuti.",
 ].join("\n");
+
+/**
+ * Deteksi pertanyaan di luar konteks keuangan pribadi.
+ * Konservatif: hanya menolak bila jelas di luar topik DAN tanpa istilah finansial
+ * apa pun, sehingga tidak ada false-positive pada pertanyaan keuangan.
+ */
+const OUT_OF_SCOPE_MARKERS = [
+  "resep", "masak", "makanan apa", "cuaca", "presiden", "politik", "sejarah",
+  "piala", "sepak bola", "film", "musik", "lagu", "buku", "game", "foto",
+  "fotografi", "terjemahkan", "translate", "ibu kota", "ibukota", "kode",
+  "program", "python", "javascript", "website", "aplikasi", "bahasa pemrograman",
+  "cara membuat", "rumus", "persamaan", "kimia", "fisika", "biologi",
+  "pemerintah", "negara", "planet", "hewan", "tumbuhan", "recipe", "cook",
+  "weather", "president", "politics", "history", "movie", "song", "game",
+  "translate", "capital of", "how to make", "code", "program", "formula",
+  "equation", "chemistry", "physics", "biology", "country", "planet",
+] as const;
+
+const FINANCIAL_KEYWORDS = [
+  "uang", "keuangan", "budget", "anggaran", "transaksi", "saldo", "belanja",
+  "pengeluaran", "pemasukan", "tabungan", "investasi", "gaji", "tagihan",
+  "hutang", "utang", "kredit", "debit", "kartu", "bank", "dompet", "menabung",
+  "hemat", "harga", "jual", "beli", "cicilan", "bunga", "suku", "asuransi",
+  "pajak", "properti", "saham", "reksa", "dana", "rupiah", "dollar", "euro",
+  "income", "expense", "savings", "invest", "salary", "bill", "debt", "loan",
+  "credit", "finance", "financial", "money", "spend", "spending", "cash",
+  "wallet", "budget", "cost", "price", "pay", "payment", "monthly", "mortgage",
+] as const;
+
+export function isFinancialQuestion(prompt: string): boolean {
+  const lower = prompt.toLowerCase();
+  const hasFinancialTerm = FINANCIAL_KEYWORDS.some((k) => lower.includes(k));
+  if (hasFinancialTerm) return true;
+  return !OUT_OF_SCOPE_MARKERS.some((m) => lower.includes(m));
+}
+
+export const OUT_OF_SCOPE_REPLY =
+  "Maaf, saya hanya bisa membantu seputar keuangan pribadi kamu — misalnya " +
+  "pola pengeluaran, anggaran, saran hemat, atau ringkasan bulan ini. " +
+  "Pertanyaan di luar topik keuangan tidak bisa saya jawab. " +
+  "Silakan tanya hal yang berkaitan dengan keuanganmu!";
+
 
 /**
  * Streaming insight generation. Server-only (dipanggil dari route handler).

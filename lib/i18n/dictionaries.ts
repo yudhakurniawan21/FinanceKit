@@ -310,6 +310,12 @@ const idDict = {
   presetSummary: "Ringkasan Bulan",
   presetSave: "Saran Hemat",
   presetBudget: "Cek vs Anggaran",
+  topCategories: "Kategori terbesar",
+  customPromptPlaceholder:
+    "Tulis pertanyaan bebas tentang keuanganmu…",
+  askAI: "Tanya AI",
+  copyInsight: "Salin insight",
+  copied: "Tersalin!",
   promptSummary:
     "Berikan ringkasan apa saja yang terjadi dengan keuangan bulan ini (3-4 poin): pola pengeluaran, kategori terbesar, dan apakah saya akan berada di atas atau di bawah anggaran. Jawab singkat dalam Bahasa Indonesia.",
   promptSave:
@@ -631,6 +637,11 @@ export const enDict: Dict = {
   presetSummary: "Monthly Summary",
   presetSave: "Saving Tips",
   presetBudget: "Budget Check",
+  topCategories: "Top categories",
+  customPromptPlaceholder: "Ask anything about your finances…",
+  askAI: "Ask AI",
+  copyInsight: "Copy insight",
+  copied: "Copied!",
   promptSummary:
     "Give a summary of what happened with this month's finances (3-4 bullet points): spending patterns, largest categories, and whether I'm on track or over budget. Answer briefly.",
   promptSave:
@@ -953,6 +964,12 @@ export const deDict: Dict = {
   presetSummary: "Monatsübersicht",
   presetSave: "Spartipps",
   presetBudget: "Budget-Check",
+  topCategories: "Größte Kategorien",
+  customPromptPlaceholder:
+    "Stellen Sie eine freie Frage zu Ihren Finanzen…",
+  askAI: "KI fragen",
+  copyInsight: "Insight kopieren",
+  copied: "Kopiert!",
   promptSummary:
     "Fassen Sie zusammen, was mit den Finanzen diesen Monat passiert ist (3-4 Punkte): Ausgabemuster, größte Kategorien und ob ich im oder über dem Budget liege. Antworten Sie kurz.",
   promptSave:

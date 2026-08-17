@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { streamInsight, testPoolsideKey } from "@/lib/ai";
+import { streamInsight, testPoolsideKey, isFinancialQuestion, OUT_OF_SCOPE_REPLY } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
 
   if (!prompt.trim()) {
     return NextResponse.json({ error: "Prompt kosong" }, { status: 400 });
+  }
+
+  // Tolak cepat pertanyaan di luar konteks keuangan (tanpa biaya token).
+  if (!isFinancialQuestion(prompt)) {
+    return new Response(OUT_OF_SCOPE_REPLY, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, max-age=0",
+      },
+    });
   }
 
   // Streaming via TransformStream → client menerima per chunk.
