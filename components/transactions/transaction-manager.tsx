@@ -63,9 +63,14 @@ import type { DictKey } from "@/lib/i18n/dictionaries";
 import type { Category } from "@/lib/generated/prisma/client";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
 
-type SortKey = "date" | "description" | "category" | "method" | "account" | "amount";
+type SortKey =
+  | "date"
+  | "description"
+  | "category"
+  | "method"
+  | "account"
+  | "amount";
 type SortDir = "asc" | "desc";
-
 
 export function TransactionManager({
   transactions,
@@ -85,17 +90,27 @@ export function TransactionManager({
   timeZone: string;
   locale: string;
   wallets: { id: string; name: string }[];
-  goals: { id: string; name: string; currentAmount: number; targetAmount: number }[];
+  goals: {
+    id: string;
+    name: string;
+    currentAmount: number;
+    targetAmount: number;
+  }[];
   totalCount?: number;
 }) {
   const router = useRouter();
   const { t } = useI18n();
   const [addOpen, setAddOpen] = useState(false);
   const [editTx, setEditTx] = useState<TransactionWithCategory | null>(null);
-  const [recurringTx, setRecurringTx] = useState<TransactionWithCategory | null>(null);
-  const [deleteTx, setDeleteTx] = useState<TransactionWithCategory | null>(null);
+  const [recurringTx, setRecurringTx] =
+    useState<TransactionWithCategory | null>(null);
+  const [deleteTx, setDeleteTx] = useState<TransactionWithCategory | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
-  const [activeType, setActiveType] = useState<"ALL" | "INCOME" | "EXPENSE" | "SAVINGS">("ALL");
+  const [activeType, setActiveType] = useState<
+    "ALL" | "INCOME" | "EXPENSE" | "SAVINGS"
+  >("ALL");
   const [accountFilter, setAccountFilter] = useState("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -145,7 +160,7 @@ export function TransactionManager({
       list = list.filter(
         (t) =>
           (t.description?.toLowerCase().includes(q) ?? false) ||
-          (t.category?.name?.toLowerCase().includes(q) ?? false)
+          (t.category?.name?.toLowerCase().includes(q) ?? false),
       );
     }
     return list;
@@ -168,19 +183,15 @@ export function TransactionManager({
           return (
             (a.category?.name ?? "").localeCompare(
               b.category?.name ?? "",
-              "id"
+              "id",
             ) * factor
           );
         case "method":
-          return (
-            (a.method ?? "").localeCompare(b.method ?? "", "id") * factor
-          );
+          return (a.method ?? "").localeCompare(b.method ?? "", "id") * factor;
         case "account":
           return (
-            (a.account?.name ?? "").localeCompare(
-              b.account?.name ?? "",
-              "id"
-            ) * factor
+            (a.account?.name ?? "").localeCompare(b.account?.name ?? "", "id") *
+            factor
           );
         default:
           return 0;
@@ -216,9 +227,9 @@ export function TransactionManager({
             color: c.color ?? "var(--muted-foreground)",
             isSavings: c.isSavings,
           },
-        ])
+        ]),
       ),
-    [categories]
+    [categories],
   );
 
   async function handleDelete() {
@@ -244,7 +255,7 @@ export function TransactionManager({
     .reduce((a, t) => a + t.amount, 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           {(["ALL", "INCOME", "EXPENSE", "SAVINGS"] as const).map((type) => (
@@ -264,7 +275,7 @@ export function TransactionManager({
                     ? "income"
                     : type === "EXPENSE"
                       ? "expense"
-                      : "badgeSavings"
+                      : "badgeSavings",
               )}
             </Button>
           ))}
@@ -324,7 +335,7 @@ export function TransactionManager({
                 aria-label={t("exportOptions")}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "w-9 rounded-l-none border-l-0 px-0"
+                  "w-9 rounded-l-none border-l-0 px-0",
                 )}
               >
                 <ChevronDown />
@@ -393,10 +404,14 @@ export function TransactionManager({
           <Search className="h-8 w-8 text-muted-foreground/40" />
           <div>
             <p className="font-medium text-foreground">
-              {transactions.length === 0 ? t("noTransactionsYet") : t("noResults")}
+              {transactions.length === 0
+                ? t("noTransactionsYet")
+                : t("noResults")}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {transactions.length === 0 ? t("startTracking") : t("tryChangingFilters")}
+              {transactions.length === 0
+                ? t("startTracking")
+                : t("tryChangingFilters")}
             </p>
           </div>
           {transactions.length === 0 && (
@@ -552,7 +567,9 @@ export function TransactionManager({
                     onSort={handleSort}
                     className="text-right"
                   />
-                  <TableHead className="text-center">{t("colActions")}</TableHead>
+                  <TableHead className="text-center">
+                    {t("colActions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -560,9 +577,18 @@ export function TransactionManager({
                   const cat = tx.categoryId ? catMap[tx.categoryId] : null;
                   const isIncome = tx.type === "INCOME";
                   return (
-                    <TableRow key={tx.id} className="transition-colors hover:bg-muted/50">
-                      <TableCell>{formatDate(tx.date, dateFormat, timeZone, locale)}</TableCell>
-                      <TableCell>{tx.description ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableRow
+                      key={tx.id}
+                      className="transition-colors hover:bg-muted/50"
+                    >
+                      <TableCell>
+                        {formatDate(tx.date, dateFormat, timeZone, locale)}
+                      </TableCell>
+                      <TableCell>
+                        {tx.description ?? (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {cat ? (
                           <span className="inline-flex items-center gap-1.5">
@@ -590,7 +616,9 @@ export function TransactionManager({
                       </TableCell>
                       <TableCell>
                         {tx.method ? (
-                          <Badge variant="outline">{methodLabel(t, tx.method)}</Badge>
+                          <Badge variant="outline">
+                            {methodLabel(t, tx.method)}
+                          </Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -600,7 +628,10 @@ export function TransactionManager({
                           <span className="inline-flex items-center gap-1.5">
                             <span
                               className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: tx.account.color ?? "var(--muted-foreground)" }}
+                              style={{
+                                backgroundColor:
+                                  tx.account.color ?? "var(--muted-foreground)",
+                              }}
                             />
                             {tx.account.name}
                           </span>
@@ -663,7 +694,10 @@ export function TransactionManager({
           <p className="text-sm text-muted-foreground">
             {t("showingRows", {
               from: formatNumber((safePage - 1) * pageSize + 1, locale),
-              to: formatNumber(Math.min(safePage * pageSize, filtered.length), locale),
+              to: formatNumber(
+                Math.min(safePage * pageSize, filtered.length),
+                locale,
+              ),
               total: formatNumber(filtered.length, locale),
             })}
           </p>
@@ -696,7 +730,7 @@ export function TransactionManager({
                 >
                   {p}
                 </Button>
-              )
+              ),
             )}
             <Button
               variant="outline"
@@ -843,7 +877,7 @@ function exportUrl(period: "all" | "month" | "six", timeZone: string): string {
     const now = new Date();
     const b = monthBounds(
       new Date(now.getFullYear(), now.getMonth() - 5, 1),
-      timeZone
+      timeZone,
     );
     p.set("start", toISODate(b.start));
   }
@@ -852,7 +886,7 @@ function exportUrl(period: "all" | "month" | "six", timeZone: string): string {
 
 function methodLabel(
   t: (key: DictKey, vars?: Record<string, string | number>) => string,
-  method: string
+  method: string,
 ) {
   const map: Record<string, DictKey> = {
     CASH: "methodCash",
@@ -879,11 +913,7 @@ function SortableHead({
   className?: string;
 }) {
   const active = activeKey === sortKey;
-  const Icon = active
-    ? dir === "asc"
-      ? ArrowUp
-      : ArrowDown
-    : ArrowUpDown;
+  const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
     <TableHead
       className={className}

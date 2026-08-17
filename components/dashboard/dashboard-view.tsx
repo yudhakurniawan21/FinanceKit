@@ -354,22 +354,22 @@ function HealthCard({
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
-        <div>
+        <div className="min-w-0 flex-1">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <PiggyBank className="h-4 w-4 text-primary" />
-            {t("healthTitle")}
+            <PiggyBank className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate">{t("healthTitle")}</span>
           </CardTitle>
-          <CardDescription>{t("healthDesc")}</CardDescription>
+          <CardDescription className="text-xs">{t("healthDesc")}</CardDescription>
         </div>
         <Link
           href="/insights"
-          className="shrink-0 text-sm font-medium underline"
+          className="shrink-0 whitespace-nowrap text-sm font-medium underline"
         >
           {t("healthAnalyze")}
         </Link>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-4">
           <div className="relative mx-auto h-28 w-28 shrink-0 sm:mx-0">
             <svg viewBox="0 0 120 120" className="h-full w-full">
               <circle
@@ -402,7 +402,7 @@ function HealthCard({
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 space-y-2">
+          <div className="min-w-0 flex-1 space-y-3">
             <p
               className="text-lg font-semibold"
               style={{ color: gradeColor }}
@@ -411,7 +411,7 @@ function HealthCard({
             </p>
             {health.metrics.map((m) => (
               <div key={m.key}>
-                <div className="flex items-center justify-between gap-2 text-sm">
+                <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="flex min-w-0 items-center gap-1.5">
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
@@ -432,7 +432,7 @@ function HealthCard({
                       </TooltipContent>
                     </Tooltip>
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  <span className="shrink-0 whitespace-nowrap text-right text-xs text-muted-foreground tabular-nums">
                     {m.detail === "—"
                       ? "—"
                       : m.key === "emergencyFund"
@@ -445,7 +445,7 @@ function HealthCard({
                           : m.detail}
                   </span>
                 </div>
-                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -454,12 +454,12 @@ function HealthCard({
                     }}
                   />
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   {t(m.tipKey, m.tipParams)}
                 </p>
               </div>
             ))}
-            <p className="border-t pt-2 text-[11px] text-muted-foreground/80">
+            <p className="border-t pt-2 text-[11px] leading-relaxed text-muted-foreground/80">
               {t("healthFootNote")}
             </p>
           </div>
@@ -488,7 +488,7 @@ function ActionCard({ actions }: { actions: ActionItem[] }) {
       </CardHeader>
       <CardContent className="space-y-1">
         {actions.length === 0 ? (
-          <p className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-3 text-sm leading-snug text-muted-foreground">
             <CircleCheck className="h-4 w-4 shrink-0 text-positive" />
             {t("actionNone")}
           </p>
@@ -497,13 +497,13 @@ function ActionCard({ actions }: { actions: ActionItem[] }) {
             <Link
               key={a.key}
               href={a.href}
-              className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+              className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex min-w-0 items-start gap-2">
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${dotColor[a.severity]}`}
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotColor[a.severity]}`}
                 />
-                <span className="min-w-0 text-sm">
+                <span className="min-w-0 text-sm leading-snug">
                   {t(a.titleKey, a.titleParams)}
                 </span>
               </span>

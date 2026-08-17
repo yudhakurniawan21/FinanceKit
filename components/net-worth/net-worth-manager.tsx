@@ -126,21 +126,21 @@ export function NetWorthManager({
     <div className="space-y-6">
       {/* Ringkasan */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="min-w-0">
           <CardContent className="p-4">
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Scale className="h-4 w-4" />
+              <Scale className="h-4 w-4 shrink-0" />
               {t("statNetWorth")}
             </p>
             <p
               className={
-                "mt-1 text-2xl font-semibold tabular-nums " +
+                "mt-1 text-2xl font-semibold tabular-nums wrap-anywhere " +
                 (negative ? "text-destructive" : "")
               }
             >
               {formatMoney(summary.netWorth, currency, locale)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground wrap-anywhere">
               {t("netWorthComposition", {
                 assets: formatMoney(summary.totalAssets, currency, locale),
                 liabilities: formatMoney(
@@ -152,26 +152,26 @@ export function NetWorthManager({
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-0">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">
               {t("totalAssets")}
             </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-positive">
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-positive wrap-anywhere">
               {formatMoney(summary.totalAssets, currency, locale)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground wrap-anywhere">
               {t("liquidAssetsLabel")}:{" "}
               {formatMoney(summary.totalLiquid, currency, locale)}
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-w-0">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">
               {t("totalLiabilities")}
             </p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-destructive">
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-destructive wrap-anywhere">
               {formatMoney(summary.totalLiabilities, currency, locale)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -194,8 +194,7 @@ export function NetWorthManager({
               {t("netWorthTrendEmpty")}
             </p>
           ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={240}>
                 <AreaChart
                   data={snapshots.map((s) => ({
                     label: formatDate(s.date, dateFormat, timeZone, locale),
@@ -282,7 +281,6 @@ export function NetWorthManager({
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
           )}
         </CardContent>
       </Card>
