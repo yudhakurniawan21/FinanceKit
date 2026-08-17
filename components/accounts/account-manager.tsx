@@ -6,19 +6,18 @@ import { Plus, Trash2, Pencil, ArrowLeftRight, Banknote, Landmark, Wallet, Credi
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
+import { Field } from "@/components/ui/field";
+import { Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -348,24 +347,23 @@ function WalletDialog({
   }, [state, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form action={boundAction} className="space-y-4">
           {mode === "edit" && wallet && (
             <input type="hidden" name="id" value={wallet.id} />
           )}
-          <DialogHeader>
-            <DialogTitle>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               {mode === "edit" ? t("editAccountTitle") : t("addAccountTitle")}
-            </DialogTitle>
-            <DialogDescription>
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {mode === "edit" ? t("editAccountDesc") : t("addAccountDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="wallet-name">{t("accountNameLabel")}</Label>
+            <Field label={t("accountNameLabel")} htmlFor="wallet-name">
               <Input
                 id="wallet-name"
                 name="name"
@@ -373,10 +371,9 @@ function WalletDialog({
                 placeholder={t("accountNamePlaceholder")}
                 required
               />
-            </div>
+            </Field>
 
-            <div className="space-y-1">
-              <Label>{t("accountTypeLabel")}</Label>
+            <Field label={t("accountTypeLabel")}>
               <div className="flex gap-2">
                 {WALLET_TYPES.map((w) => (
                   <button
@@ -396,10 +393,9 @@ function WalletDialog({
                 ))}
               </div>
               <input type="hidden" name="type" value={type} />
-            </div>
+            </Field>
 
-            <div className="space-y-1">
-              <Label>{t("colorLabel")}</Label>
+            <Field label={t("colorLabel")}>
               <div className="flex flex-wrap gap-2">
                 {COLOR_OPTIONS.map((c) => (
                   <button
@@ -418,7 +414,7 @@ function WalletDialog({
                 ))}
               </div>
               <input type="hidden" name="color" value={color} />
-            </div>
+            </Field>
 
             {mode === "edit" && wallet && (
               <p className="text-xs text-muted-foreground">
@@ -432,7 +428,7 @@ function WalletDialog({
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -444,10 +440,10 @@ function WalletDialog({
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -491,93 +487,93 @@ function TransferDialog({
   }, [state, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form action={boundAction} className="space-y-4">
-          <DialogHeader>
-            <DialogTitle>{t("transferTitle")}</DialogTitle>
-            <DialogDescription>{t("transferDesc")}</DialogDescription>
-          </DialogHeader>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t("transferTitle")}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>{t("transferDesc")}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>{t("fromLabel")}</Label>
-              <Select
-                value={from}
-                onValueChange={(v: string | null) => setFrom(v ?? "")}
-                disabled={isPending}
-                items={wallets.map((w) => ({ value: w.id, label: w.name }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("fromLabel")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((w) => (
-                    <SelectItem value={w.id} key={w.id} label={w.name}>
-                      {w.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="fromAccountId" value={from} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t("fromLabel")}>
+                <Select
+                  value={from}
+                  onValueChange={(v: string | null) => setFrom(v ?? "")}
+                  disabled={isPending}
+                  items={wallets.map((w) => ({ value: w.id, label: w.name }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("fromLabel")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((w) => (
+                      <SelectItem value={w.id} key={w.id} label={w.name}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="fromAccountId" value={from} />
+              </Field>
+
+              <Field label={t("toLabel")}>
+                <Select
+                  value={to}
+                  onValueChange={(v: string | null) => setTo(v ?? "")}
+                  disabled={isPending}
+                  items={wallets.map((w) => ({ value: w.id, label: w.name }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("toLabel")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((w) => (
+                      <SelectItem value={w.id} key={w.id} label={w.name}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="toAccountId" value={to} />
+              </Field>
             </div>
 
-            <div className="space-y-1">
-              <Label>{t("toLabel")}</Label>
-              <Select
-                value={to}
-                onValueChange={(v: string | null) => setTo(v ?? "")}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MoneyInput
+                name="amount"
+                label={t("amountLabel")}
+                currency={currency}
+                required
                 disabled={isPending}
-                items={wallets.map((w) => ({ value: w.id, label: w.name }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("toLabel")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((w) => (
-                    <SelectItem value={w.id} key={w.id} label={w.name}>
-                      {w.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="toAccountId" value={to} />
-            </div>
-
-            <MoneyInput
-              name="amount"
-              label={t("amountLabel")}
-              currency={currency}
-              required
-              disabled={isPending}
-            />
-
-            <div className="space-y-1">
-              <Label>{t("dateLabel")}</Label>
-              <DatePicker value={date} onChange={setDate} locale={locale} />
-              <input
-                type="hidden"
-                name="date"
-                value={date ? format(date, "yyyy-MM-dd") : ""}
               />
+
+              <Field label={t("dateLabel")}>
+                <DatePicker value={date} onChange={setDate} locale={locale} />
+                <input
+                  type="hidden"
+                  name="date"
+                  value={date ? format(date, "yyyy-MM-dd") : ""}
+                />
+              </Field>
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="tr-desc">{t("notesLabel")}</Label>
+            <Field label={t("notesLabel")} htmlFor="tr-desc">
               <Input
                 id="tr-desc"
                 name="description"
                 placeholder={t("notesPlaceholder")}
                 disabled={isPending}
               />
-            </div>
+            </Field>
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -589,9 +585,9 @@ function TransferDialog({
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("transfer")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

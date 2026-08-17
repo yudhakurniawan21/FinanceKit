@@ -6,18 +6,17 @@ import { Plus, Trash2, Pencil, PiggyBank, ArrowDownToLine, ArrowUpFromLine } fro
 import { differenceInMonths } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
+import { Field } from "@/components/ui/field";
+import { AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -318,24 +317,23 @@ function GoalDialog({
   }, [state, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form action={boundAction} className="space-y-4">
           {mode === "edit" && goal && (
             <input type="hidden" name="id" value={goal.id} />
           )}
-          <DialogHeader>
-            <DialogTitle>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               {mode === "edit" ? t("editGoalTitle") : t("addGoalTitle")}
-            </DialogTitle>
-            <DialogDescription>
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {mode === "edit" ? t("editGoalDesc") : t("addGoalDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="goal-name">{t("goalNameLabel")}</Label>
+            <Field label={t("goalNameLabel")} htmlFor="goal-name">
               <Input
                 id="goal-name"
                 name="name"
@@ -343,34 +341,34 @@ function GoalDialog({
                 placeholder={t("goalNamePlaceholder")}
                 required
               />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MoneyInput
+                name="targetAmount"
+                label={t("targetLabel")}
+                defaultValue={
+                  goal ? minorToMajor(goal.targetAmount, currency) : undefined
+                }
+                currency={currency}
+                required
+              />
+
+              <Field label={t("deadlineLabel")}>
+                <DatePicker
+                  value={deadline}
+                  onChange={setDeadline}
+                  locale={locale}
+                />
+                <input
+                  type="hidden"
+                  name="deadline"
+                  value={deadline ? deadline.toISOString().slice(0, 10) : ""}
+                />
+              </Field>
             </div>
 
-            <MoneyInput
-              name="targetAmount"
-              label={t("targetLabel")}
-              defaultValue={
-                goal ? minorToMajor(goal.targetAmount, currency) : undefined
-              }
-              currency={currency}
-              required
-            />
-
-            <div className="space-y-1">
-              <Label>{t("deadlineLabel")}</Label>
-              <DatePicker
-                value={deadline}
-                onChange={setDeadline}
-                locale={locale}
-              />
-              <input
-                type="hidden"
-                name="deadline"
-                value={deadline ? deadline.toISOString().slice(0, 10) : ""}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label>{t("colorLabel")}</Label>
+            <Field label={t("colorLabel")}>
               <div className="flex flex-wrap gap-2">
                 {COLOR_OPTIONS.map((c) => (
                   <button
@@ -389,14 +387,14 @@ function GoalDialog({
                 ))}
               </div>
               <input type="hidden" name="color" value={color} />
-            </div>
+            </Field>
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -408,10 +406,10 @@ function GoalDialog({
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -438,18 +436,17 @@ function AdjustDialog({
   }, [state, onClose]);
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open onOpenChange={(o) => !o && onClose()}>
+      <ResponsiveDialogContent className="sm:max-w-md">
         <form action={boundAction} className="space-y-4">
           <input type="hidden" name="id" value={goal.id} />
-          <DialogHeader>
-            <DialogTitle>{t("adjustTitle")}</DialogTitle>
-            <DialogDescription>{t("adjustDesc")}</DialogDescription>
-          </DialogHeader>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t("adjustTitle")}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>{t("adjustDesc")}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>{t("typeLabel")}</Label>
+            <Field label={t("typeLabel")}>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -477,7 +474,7 @@ function AdjustDialog({
                 </button>
               </div>
               <input type="hidden" name="direction" value={direction} />
-            </div>
+            </Field>
 
             <MoneyInput
               name="amount"
@@ -499,7 +496,7 @@ function AdjustDialog({
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -515,9 +512,9 @@ function AdjustDialog({
                   ? t("deposit")
                   : t("withdraw")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

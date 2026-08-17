@@ -195,7 +195,7 @@ export function InsightPanel({
           placeholder={t("customPromptPlaceholder")}
           aria-label={t("customPromptPlaceholder")}
           rows={2}
-          className="min-h-[56px] w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+          className="min-h-14 w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -214,7 +214,7 @@ export function InsightPanel({
         </Button>
       </div>
 
-      <Card className="min-h-[220px]">
+      <Card className="min-h-55">
         <CardHeader className="items-start pb-2">
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -242,7 +242,7 @@ export function InsightPanel({
         <CardContent>
           <div
             ref={endRef}
-            className="h-[260px] max-h-[50dvh] overflow-y-auto text-sm leading-relaxed"
+            className="h-65 max-h-[50dvh] overflow-y-auto text-sm leading-relaxed"
           >
             {error ? (
               <p className="text-destructive">{error}</p>

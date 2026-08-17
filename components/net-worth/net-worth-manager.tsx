@@ -29,15 +29,15 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
+import { Field } from "@/components/ui/field";
+import { AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -518,13 +518,13 @@ function ItemDialog({
   }, [formState, onClose, router]);
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open onOpenChange={(o) => !o && onClose()}>
+      <ResponsiveDialogContent>
         <form action={boundAction}>
           {item && <input type="hidden" name="id" value={item.id} />}
           <input type="hidden" name="type" value={type} />
-          <DialogHeader>
-            <DialogTitle>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               {state.mode === "edit"
                 ? t("editNetWorthItemTitle", {
                     type: t(type === "ASSET" ? "nwAsset" : "nwLiability"),
@@ -532,17 +532,16 @@ function ItemDialog({
                 : t("addNetWorthItemTitle", {
                     type: t(type === "ASSET" ? "nwAsset" : "nwLiability"),
                   })}
-            </DialogTitle>
-            <DialogDescription>
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {state.mode === "edit"
                 ? t("editNetWorthItemDesc")
                 : t("addNetWorthItemDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="space-y-1">
-              <Label htmlFor="nw-name">{t("netWorthItemNameLabel")}</Label>
+            <Field label={t("netWorthItemNameLabel")} htmlFor="nw-name">
               <Input
                 id="nw-name"
                 name="name"
@@ -551,28 +550,30 @@ function ItemDialog({
                 required
                 disabled={isPending}
               />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MoneyInput
+                name="value"
+                label={t("netWorthItemValueLabel")}
+                defaultValue={
+                  item ? minorToMajor(item.value, currency) : undefined
+                }
+                currency={currency}
+                placeholder={t("netWorthItemValuePlaceholder")}
+                required
+                disabled={isPending}
+              />
+
+              <ColorField defaultValue={item?.color ?? COLOR_OPTIONS[0]} />
             </div>
-
-            <MoneyInput
-              name="value"
-              label={t("netWorthItemValueLabel")}
-              defaultValue={
-                item ? minorToMajor(item.value, currency) : undefined
-              }
-              currency={currency}
-              placeholder={t("netWorthItemValuePlaceholder")}
-              required
-              disabled={isPending}
-            />
-
-            <ColorField defaultValue={item?.color ?? COLOR_OPTIONS[0]} />
 
             {formState?.error && (
               <p className="text-sm text-destructive">{formState.error}</p>
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -584,10 +585,10 @@ function ItemDialog({
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -597,7 +598,7 @@ function ColorField({ defaultValue = COLOR_OPTIONS[0] }: { defaultValue?: string
   const isPreset = COLOR_OPTIONS.includes(color);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label>{t("colorLabel")}</Label>
       <div className="flex flex-wrap items-center gap-2">
         {COLOR_OPTIONS.map((c) => (

@@ -6,19 +6,18 @@ import { Plus, Trash2, Pencil, RefreshCcw, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
+import { Field } from "@/components/ui/field";
+import { Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -360,24 +359,23 @@ function RecurringDialog({
   const categoryOptions = categories.filter((c) => c.type === type);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form action={boundAction} className="space-y-4">
           {mode === "edit" && recurring && (
             <input type="hidden" name="id" value={recurring.id} />
           )}
-          <DialogHeader>
-            <DialogTitle>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               {mode === "edit" ? t("editRecurringTitle") : t("addRecurringTitle")}
-            </DialogTitle>
-            <DialogDescription>
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {mode === "edit" ? t("editRecurringDesc") : t("addRecurringDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="rec-desc">{t("recurringDescLabel")}</Label>
+            <Field label={t("recurringDescLabel")} htmlFor="rec-desc">
               <Input
                 id="rec-desc"
                 name="description"
@@ -386,23 +384,37 @@ function RecurringDialog({
                 required
                 disabled={isPending}
               />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MoneyInput
+                name="amount"
+                label={t("amountLabel")}
+                defaultValue={
+                  recurring
+                    ? minorToMajor(recurring.amount, currency)
+                    : undefined
+                }
+                currency={currency}
+                required
+                disabled={isPending}
+              />
+
+              <Field label={t("startDateLabel")}>
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  locale={locale}
+                />
+                <input
+                  type="hidden"
+                  name="startDate"
+                  value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
+                />
+              </Field>
             </div>
 
-            <MoneyInput
-              name="amount"
-              label={t("amountLabel")}
-              defaultValue={
-                recurring
-                  ? minorToMajor(recurring.amount, currency)
-                  : undefined
-              }
-              currency={currency}
-              required
-              disabled={isPending}
-            />
-
-            <div className="space-y-1">
-              <Label>{t("typeLabel")}</Label>
+            <Field label={t("typeLabel")}>
               <div className="flex gap-2">
                 {(["INCOME", "EXPENSE"] as const).map((o) => (
                   <button
@@ -422,10 +434,9 @@ function RecurringDialog({
                 ))}
               </div>
               <input type="hidden" name="type" value={type} />
-            </div>
+            </Field>
 
-            <div className="space-y-1">
-              <Label>{t("frequencyLabel")}</Label>
+            <Field label={t("frequencyLabel")}>
               <div className="flex gap-2">
                 {FREQUENCIES.map((f) => (
                   <button
@@ -444,78 +455,77 @@ function RecurringDialog({
                 ))}
               </div>
               <input type="hidden" name="frequency" value={frequency} />
-            </div>
+            </Field>
 
-            <div className="space-y-1">
-              <Label>{t("categoryLabel")}</Label>
-              <Select
-                value={category}
-                onValueChange={(v: string | null) => setCategory(v ?? "")}
-                disabled={isPending}
-                items={[
-                  { value: "", label: t("noCategory") },
-                  ...categoryOptions.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  })),
-                ]}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectCategoryPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="" label={t("noCategory")}>
-                    {t("noCategory")}
-                  </SelectItem>
-                  {categoryOptions.map((c) => (
-                    <SelectItem value={c.id} key={c.id} label={c.name}>
-                      {c.name}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t("categoryLabel")}>
+                <Select
+                  value={category}
+                  onValueChange={(v: string | null) => setCategory(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: t("noCategory") },
+                    ...categoryOptions.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectCategoryPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label={t("noCategory")}>
+                      {t("noCategory")}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="categoryId" value={category} />
-            </div>
+                    {categoryOptions.map((c) => (
+                      <SelectItem value={c.id} key={c.id} label={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="categoryId" value={category} />
+              </Field>
 
-            <div className="space-y-1">
-              <Label>{t("methodLabel")}</Label>
-              <Select
-                value={method}
-                onValueChange={(v: string | null) => setMethod(v ?? "")}
-                disabled={isPending}
-                items={[
-                  { value: "", label: "—" },
-                  { value: "CASH", label: t("methodCash") },
-                  { value: "BANK", label: t("methodBank") },
-                  { value: "E_WALLET", label: t("methodEwallet") },
-                  { value: "CARD", label: t("methodCard") },
-                ]}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectMethodPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="" label="—">—</SelectItem>
-                  <SelectItem value="CASH" label={t("methodCash")}>
-                    {t("methodCash")}
-                  </SelectItem>
-                  <SelectItem value="BANK" label={t("methodBank")}>
-                    {t("methodBank")}
-                  </SelectItem>
-                  <SelectItem value="E_WALLET" label={t("methodEwallet")}>
-                    {t("methodEwallet")}
-                  </SelectItem>
-                  <SelectItem value="CARD" label={t("methodCard")}>
-                    {t("methodCard")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="method" value={method} />
+              <Field label={t("methodLabel")}>
+                <Select
+                  value={method}
+                  onValueChange={(v: string | null) => setMethod(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: "—" },
+                    { value: "CASH", label: t("methodCash") },
+                    { value: "BANK", label: t("methodBank") },
+                    { value: "E_WALLET", label: t("methodEwallet") },
+                    { value: "CARD", label: t("methodCard") },
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectMethodPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label="—">—</SelectItem>
+                    <SelectItem value="CASH" label={t("methodCash")}>
+                      {t("methodCash")}
+                    </SelectItem>
+                    <SelectItem value="BANK" label={t("methodBank")}>
+                      {t("methodBank")}
+                    </SelectItem>
+                    <SelectItem value="E_WALLET" label={t("methodEwallet")}>
+                      {t("methodEwallet")}
+                    </SelectItem>
+                    <SelectItem value="CARD" label={t("methodCard")}>
+                      {t("methodCard")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="method" value={method} />
+              </Field>
             </div>
 
             {wallets.length > 0 && (
-              <div className="space-y-1">
-                <Label>{t("accountLabel")}</Label>
+              <Field label={t("accountLabel")}>
                 <Select
                   value={account}
                   onValueChange={(v: string | null) => setAccount(v ?? "")}
@@ -528,7 +538,7 @@ function RecurringDialog({
                     })),
                   ]}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder={t("selectAccountPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -543,25 +553,15 @@ function RecurringDialog({
                   </SelectContent>
                 </Select>
                 <input type="hidden" name="accountId" value={account} />
-              </div>
+              </Field>
             )}
-
-            <div className="space-y-1">
-              <Label>{t("startDateLabel")}</Label>
-              <DatePicker value={startDate} onChange={setStartDate} locale={locale} />
-              <input
-                type="hidden"
-                name="startDate"
-                value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
-              />
-            </div>
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -573,9 +573,9 @@ function RecurringDialog({
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

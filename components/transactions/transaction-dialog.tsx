@@ -3,14 +3,14 @@
 import { useEffect, useState, useActionState } from "react";
 import { format } from "date-fns";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog";
+import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -112,45 +112,22 @@ export function TransactionDialog({
   const categoryOptions = categories.filter((c) => c.type === type);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form action={boundAction} className="space-y-4">
-          <DialogHeader>
-            <DialogTitle>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               {mode === "edit" ? t("editTxTitle") : t("addTxTitle")}
-            </DialogTitle>
-            <DialogDescription>
+            </ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {mode === "edit"
                 ? t("editTxDesc")
                 : t("addTxDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>{t("dateLabel")}</Label>
-              <DatePicker value={date} onChange={setDate} locale={locale} />
-              <input
-                type="hidden"
-                name="date"
-                value={date ? format(date, "yyyy-MM-dd") : ""}
-              />
-            </div>
-
-            <MoneyInput
-              name="amount"
-              label={t("amountLabel")}
-              defaultValue={
-                transaction
-                  ? minorToMajor(transaction.amount, currency)
-                  : undefined
-              }
-              currency={currency}
-              disabled={isPending}
-            />
-
-            <div className="space-y-1">
-              <Label>{t("typeLabel")}</Label>
+            <Field label={t("typeLabel")}>
               <div className="flex gap-2">
                 {typeOptions.map((o) => (
                   <button
@@ -170,77 +147,99 @@ export function TransactionDialog({
                 ))}
               </div>
               <input type="hidden" name="type" value={type} />
+            </Field>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MoneyInput
+                name="amount"
+                label={t("amountLabel")}
+                defaultValue={
+                  transaction
+                    ? minorToMajor(transaction.amount, currency)
+                    : undefined
+                }
+                currency={currency}
+                disabled={isPending}
+              />
+
+              <Field label={t("dateLabel")}>
+                <DatePicker value={date} onChange={setDate} locale={locale} />
+                <input
+                  type="hidden"
+                  name="date"
+                  value={date ? format(date, "yyyy-MM-dd") : ""}
+                />
+              </Field>
             </div>
 
-            <div className="space-y-1">
-              <Label>{t("categoryLabel")}</Label>
-              <Select
-                value={category}
-                onValueChange={(v: string | null) => setCategory(v ?? "")}
-                disabled={isPending}
-                items={[
-                  { value: "", label: t("noCategory") },
-                  ...categoryOptions.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  })),
-                ]}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectCategoryPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="" label={t("noCategory")}>
-                    {t("noCategory")}
-                  </SelectItem>
-                  {categoryOptions.map((c) => (
-                    <SelectItem value={c.id} key={c.id} label={c.name}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: c.color ?? "var(--muted-foreground)" }}
-                        />
-                        {c.name}
-                      </span>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t("categoryLabel")}>
+                <Select
+                  value={category}
+                  onValueChange={(v: string | null) => setCategory(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: t("noCategory") },
+                    ...categoryOptions.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectCategoryPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label={t("noCategory")}>
+                      {t("noCategory")}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="categoryId" value={category} />
-            </div>
+                    {categoryOptions.map((c) => (
+                      <SelectItem value={c.id} key={c.id} label={c.name}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: c.color ?? "var(--muted-foreground)" }}
+                          />
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="categoryId" value={category} />
+              </Field>
 
-            <div className="space-y-1">
-              <Label>{t("methodLabel")}</Label>
-              <Select
-                value={method}
-                onValueChange={(v: string | null) => setMethod(v ?? "")}
-                disabled={isPending}
-                items={[
-                  { value: "", label: "—" },
-                  ...methodOptions.map((m) => ({
-                    value: m.value,
-                    label: m.label,
-                  })),
-                ]}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("selectMethodPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="" label="—">—</SelectItem>
-                  {methodOptions.map((m) => (
-                    <SelectItem value={m.value} key={m.value} label={m.label}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="method" value={method} />
+              <Field label={t("methodLabel")}>
+                <Select
+                  value={method}
+                  onValueChange={(v: string | null) => setMethod(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: "—" },
+                    ...methodOptions.map((m) => ({
+                      value: m.value,
+                      label: m.label,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectMethodPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label="—">—</SelectItem>
+                    {methodOptions.map((m) => (
+                      <SelectItem value={m.value} key={m.value} label={m.label}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="method" value={method} />
+              </Field>
             </div>
 
             {wallets.length > 0 && (
-              <div className="space-y-1">
-                <Label>{t("accountLabel")}</Label>
+              <Field label={t("accountLabel")}>
                 <Select
                   value={account}
                   onValueChange={(v: string | null) => setAccount(v ?? "")}
@@ -253,7 +252,7 @@ export function TransactionDialog({
                     })),
                   ]}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder={t("selectAccountPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -268,11 +267,10 @@ export function TransactionDialog({
                   </SelectContent>
                 </Select>
                 <input type="hidden" name="accountId" value={account} />
-              </div>
+              </Field>
             )}
 
-            <div className="space-y-1">
-              <Label htmlFor="tx-desc">{t("notesLabel")}</Label>
+            <Field label={t("notesLabel")} htmlFor="tx-desc">
               <Textarea
                 id="tx-desc"
                 name="description"
@@ -282,7 +280,7 @@ export function TransactionDialog({
                 disabled={isPending}
                 placeholder={t("notesPlaceholder")}
               />
-            </div>
+            </Field>
 
             {mode === "edit" && transaction && (
               <input type="hidden" name="id" value={transaction.id} />
@@ -293,7 +291,7 @@ export function TransactionDialog({
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -309,9 +307,9 @@ export function TransactionDialog({
                   ? t("save")
                   : t("add")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

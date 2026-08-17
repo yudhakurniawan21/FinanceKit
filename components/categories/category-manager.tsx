@@ -13,15 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
+import { Field } from "@/components/ui/field";
+import { Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -213,39 +213,42 @@ function AddCategoryDialog({
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form action={action}>
-          <DialogHeader>
-            <DialogTitle>{t("addCategoryTitle")}</DialogTitle>
-            <DialogDescription>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t("addCategoryTitle")}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {t("addCategoryDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="py-4 space-y-4">
-            <div className="space-y-1">
-              <Label htmlFor="cat-name">{t("nameLabel")}</Label>
+            <Field label={t("nameLabel")} htmlFor="cat-name">
               <Input
                 id="cat-name"
                 name="name"
                 placeholder={t("namePlaceholder")}
                 required
               />
-            </div>
+            </Field>
 
             <TypeField value={type} onChange={setType} />
 
-            {type === "EXPENSE" && (
-              <MoneyInput
-                name="budget"
-                label={t("budgetLabel")}
-                currency={currency}
-                placeholder={t("budgetPlaceholder")}
-              />
-            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {type === "EXPENSE" && (
+                <MoneyInput
+                  name="budget"
+                  label={t("budgetLabel")}
+                  currency={currency}
+                  placeholder={t("budgetPlaceholder")}
+                />
+              )}
 
-            <IconField />
+              <div className={type === "EXPENSE" ? "" : "sm:col-span-2"}>
+                <IconField />
+              </div>
+            </div>
 
             <ColorField />
 
@@ -254,7 +257,7 @@ function AddCategoryDialog({
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button
               type="button"
               variant="ghost"
@@ -265,10 +268,10 @@ function AddCategoryDialog({
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -294,27 +297,26 @@ function CategoryEditDialog({
   }, [state, onClose, router]);
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+    <ResponsiveDialog open onOpenChange={(o) => !o && onClose()}>
+      <ResponsiveDialogContent className="sm:max-w-md">
         <form action={action}>
           <input type="hidden" name="id" value={cat.id} />
-          <DialogHeader>
-            <DialogTitle>{t("editCategoryTitle")}</DialogTitle>
-            <DialogDescription>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>{t("editCategoryTitle")}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>
               {t("editCategoryDesc")}
-            </DialogDescription>
-          </DialogHeader>
+            </ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
 
           <div className="py-4 space-y-4">
-            <div className="space-y-1">
-              <Label htmlFor="cat-edit-name">{t("nameLabel")}</Label>
+            <Field label={t("nameLabel")} htmlFor="cat-edit-name">
               <Input
                 id="cat-edit-name"
                 name="name"
                 defaultValue={cat.name}
                 required
               />
-            </div>
+            </Field>
 
             <IconField defaultValue={cat.icon ?? "Plus"} />
 
@@ -325,17 +327,17 @@ function CategoryEditDialog({
             )}
           </div>
 
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 
@@ -348,7 +350,7 @@ function TypeField({
 }) {
   const { t } = useI18n();
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label>{t("typeLabel")}</Label>
       <div className="flex gap-2">
         {(["INCOME", "EXPENSE"] as const).map((t2) => (
@@ -377,7 +379,7 @@ function IconField({ defaultValue = "Plus" }: { defaultValue?: string }) {
   const { t } = useI18n();
   const [icon, setIcon] = useState(defaultValue);
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label>{t("iconLabel")}</Label>
       <div className="flex items-center gap-2">
         <Select
@@ -408,7 +410,7 @@ function ColorField({ defaultValue = COLOR_OPTIONS[0] }: { defaultValue?: string
   const isPreset = COLOR_OPTIONS.includes(color);
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label>{t("colorLabel")}</Label>
       <div className="flex flex-wrap items-center gap-2">
         {COLOR_OPTIONS.map((c) => (

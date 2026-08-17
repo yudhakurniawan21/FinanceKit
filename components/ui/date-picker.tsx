@@ -41,8 +41,8 @@ export function DatePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "flex w-full items-center justify-start gap-2 text-left font-normal",
-          "border border-input bg-transparent px-3 py-2 text-sm rounded-lg",
+          "flex h-8 w-full items-center justify-start gap-2 text-left font-normal",
+          "border border-input bg-transparent px-3 text-sm rounded-lg",
           "focus-within:outline-none focus-within:ring-2 focus-within:ring-ring",
           value ? "text-foreground" : "text-muted-foreground",
           className

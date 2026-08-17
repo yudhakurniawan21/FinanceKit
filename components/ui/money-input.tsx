@@ -126,7 +126,7 @@ export function MoneyInput({
   const { raw, inputProps } = useMoneyMask({ defaultValue, currency });
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <Label htmlFor={name}>{label}</Label>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
