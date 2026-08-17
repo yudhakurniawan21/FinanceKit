@@ -8,6 +8,7 @@ import {
 import { monthBounds } from "@/lib/formatting";
 import { formatMoney } from "@/lib/currencies";
 import { getNetWorthSummary } from "@/lib/db/net-worth";
+import { assessFinancialHealth } from "@/lib/financial-health";
 import { InsightPanel } from "@/components/insights/insight-panel";
 import { createTranslator, langCode } from "@/lib/i18n";
 import { redirect } from "next/navigation";
@@ -26,6 +27,7 @@ export default async function InsightsPage({
   const currency = user.settings?.currency ?? "IDR";
   const locale = user.settings?.locale ?? "id-ID";
   const timeZone = user.settings?.timeZone ?? "Asia/Jakarta";
+  const dateFormat = user.settings?.dateFormat ?? "dd/MM/yyyy";
   const t = createTranslator(locale);
 
   const sp = await searchParams;
@@ -68,11 +70,17 @@ export default async function InsightsPage({
   const isCurrentMonth =
     `${nowP.year}-${nowP.month}` === month;
 
-  const [stats, byCat, recent, netWorth] = await Promise.all([
+  const [stats, byCat, recent, netWorth, health] = await Promise.all([
     sumByType(user.user.id, mStart, mEnd),
     expenseByCategory(user.user.id, mStart, mEnd),
     listTransactions(user.user.id, { start: mStart, end: mEnd, limit: 8 }),
     getNetWorthSummary(user.user.id),
+    assessFinancialHealth(user.user.id, {
+      currency,
+      locale,
+      timeZone,
+      dateFormat,
+    }),
   ]);
 
   const monthLabel = new Intl.DateTimeFormat(langCode(locale), {
@@ -153,6 +161,31 @@ export default async function InsightsPage({
       in: formatMoney(stats.savingsIn, currency, locale),
       out: formatMoney(stats.savingsOut, currency, locale),
     }),
+    ...(health.report.insufficient
+      ? []
+      : [
+          t("ctxHealth", {
+            score: String(health.report.score),
+            grade: t(
+              health.report.grade === "excellent"
+                ? "gradeExcellent"
+                : health.report.grade === "healthy"
+                  ? "gradeHealthy"
+                  : health.report.grade === "fair"
+                    ? "gradeFair"
+                    : health.report.grade === "poor"
+                      ? "gradePoor"
+                      : "gradeRisky"
+            ),
+            list:
+              health.report.metrics
+                .slice()
+                .sort((a, b) => a.score - b.score)
+                .slice(0, 3)
+                .map((m) => `${t(m.labelKey)} (${m.score})`)
+                .join(", ") || "n/a",
+          }),
+        ]),
   ].join("\n");
 
   const presetPrompts = [
@@ -171,6 +204,10 @@ export default async function InsightsPage({
     {
       label: t("presetNetWorth"),
       prompt: t("promptNetWorth"),
+    },
+    {
+      label: t("presetHealth"),
+      prompt: t("promptHealth"),
     },
   ];
 

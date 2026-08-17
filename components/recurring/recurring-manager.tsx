@@ -292,11 +292,22 @@ function frequencyKey(freq: string): DictKey {
   return map[freq] ?? "freqMonthly";
 }
 
-function RecurringDialog({
+export type RecurringPrefill = {
+  description: string;
+  amount: number;
+  type: "INCOME" | "EXPENSE";
+  method?: string | null;
+  categoryId?: string | null;
+  accountId?: string | null;
+  startDate: string;
+};
+
+export function RecurringDialog({
   open,
   onOpenChange,
   mode,
   recurring,
+  prefill,
   categories,
   wallets,
   currency,
@@ -306,6 +317,7 @@ function RecurringDialog({
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
   recurring?: RecurringWithRefs | null;
+  prefill?: RecurringPrefill | null;
   categories: Category[];
   wallets: { id: string; name: string }[];
   currency: string;
@@ -313,16 +325,24 @@ function RecurringDialog({
 }) {
   const { t } = useI18n();
   const [type, setType] = useState<"INCOME" | "EXPENSE">(
-    (recurring?.type as "INCOME" | "EXPENSE") ?? "EXPENSE"
+    (recurring?.type ?? prefill?.type ?? "EXPENSE") as "INCOME" | "EXPENSE"
   );
   const [frequency, setFrequency] = useState<Frequency>(
     (recurring?.frequency as Frequency) ?? "MONTHLY"
   );
-  const [category, setCategory] = useState(recurring?.categoryId ?? "");
-  const [method, setMethod] = useState(recurring?.method ?? "");
-  const [account, setAccount] = useState(recurring?.accountId ?? "");
+  const [category, setCategory] = useState(
+    recurring?.categoryId ?? prefill?.categoryId ?? ""
+  );
+  const [method, setMethod] = useState(recurring?.method ?? prefill?.method ?? "");
+  const [account, setAccount] = useState(
+    recurring?.accountId ?? prefill?.accountId ?? ""
+  );
   const [startDate, setStartDate] = useState<Date | null>(
-    recurring ? new Date(recurring.startDate) : new Date()
+    recurring
+      ? new Date(recurring.startDate)
+      : prefill
+        ? new Date(prefill.startDate)
+        : new Date()
   );
 
   useEffect(() => {
@@ -335,6 +355,13 @@ function RecurringDialog({
         setMethod(recurring.method ?? "");
         setAccount(recurring.accountId ?? "");
         setStartDate(new Date(recurring.startDate));
+      } else if (prefill) {
+        setType(prefill.type);
+        setFrequency("MONTHLY");
+        setCategory(prefill.categoryId ?? "");
+        setMethod(prefill.method ?? "");
+        setAccount(prefill.accountId ?? "");
+        setStartDate(new Date(prefill.startDate));
       } else {
         setType("EXPENSE");
         setFrequency("MONTHLY");
@@ -345,7 +372,7 @@ function RecurringDialog({
       }
     }, 0);
     return () => clearTimeout(to);
-  }, [open, mode, recurring, wallets]);
+  }, [open, mode, recurring, prefill, wallets]);
 
   const action = mode === "edit" ? updateRecurringAction : createRecurringAction;
   const [state, boundAction, isPending] = useActionState(action, null);
@@ -367,10 +394,18 @@ function RecurringDialog({
           )}
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>
-              {mode === "edit" ? t("editRecurringTitle") : t("addRecurringTitle")}
+              {mode === "edit"
+                ? t("editRecurringTitle")
+                : prefill
+                  ? t("convertToRecurringTitle")
+                  : t("addRecurringTitle")}
             </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
-              {mode === "edit" ? t("editRecurringDesc") : t("addRecurringDesc")}
+              {mode === "edit"
+                ? t("editRecurringDesc")
+                : prefill
+                  ? t("convertToRecurringDesc")
+                  : t("addRecurringDesc")}
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
@@ -379,7 +414,7 @@ function RecurringDialog({
               <Input
                 id="rec-desc"
                 name="description"
-                defaultValue={recurring?.description}
+                defaultValue={recurring?.description ?? prefill?.description}
                 placeholder={t("recurringDescPlaceholder")}
                 required
                 disabled={isPending}
@@ -393,7 +428,9 @@ function RecurringDialog({
                 defaultValue={
                   recurring
                     ? minorToMajor(recurring.amount, currency)
-                    : undefined
+                    : prefill
+                      ? String(prefill.amount)
+                      : undefined
                 }
                 currency={currency}
                 required

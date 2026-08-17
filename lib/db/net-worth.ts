@@ -6,6 +6,7 @@ export interface GoalSavings {
   id: string;
   name: string;
   color: string | null;
+  isEmergency: boolean;
   currentAmount: number;
   targetAmount: number;
 }
@@ -42,6 +43,7 @@ export async function getNetWorthSummary(
         id: true,
         name: true,
         color: true,
+        isEmergency: true,
         currentAmount: true,
         targetAmount: true,
       },

@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Pencil, PiggyBank, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Plus, Trash2, Pencil, PiggyBank, ArrowDownToLine, ArrowUpFromLine, ShieldCheck } from "lucide-react";
 import { differenceInMonths } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -131,7 +132,18 @@ export function GoalManager({
                         <PiggyBank className="h-5 w-5" />
                       </span>
                       <div>
-                        <p className="font-medium leading-tight">{goal.name}</p>
+                        <p className="flex items-center gap-1.5 font-medium leading-tight">
+                          {goal.name}
+                          {goal.isEmergency && (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 px-1.5 py-0 text-[10px] text-positive"
+                            >
+                              <ShieldCheck className="h-3 w-3" />
+                              {t("badgeEmergency")}
+                            </Badge>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {goal.deadline
                             ? monthsLeft != null && monthsLeft >= 0
@@ -185,6 +197,20 @@ export function GoalManager({
                         {formatMoney(remaining, currency, locale)}
                       </p>
                     )}
+                    {!achieved &&
+                      goal.deadline &&
+                      monthsLeft != null &&
+                      monthsLeft > 0 && (
+                        <p className="text-xs font-medium text-positive">
+                          {t("goalMonthlyNeeded", {
+                            amount: formatMoney(
+                              Math.ceil(remaining / monthsLeft),
+                              currency,
+                              locale
+                            ),
+                          })}
+                        </p>
+                      )}
                   </div>
 
                   <div className="mt-3 flex gap-2">
@@ -298,6 +324,7 @@ function GoalDialog({
     goal?.deadline ? new Date(goal.deadline) : null
   );
   const [createCategory, setCreateCategory] = useState(true);
+  const [isEmergency, setIsEmergency] = useState(goal?.isEmergency ?? false);
 
   useEffect(() => {
     if (!open) return;
@@ -305,6 +332,7 @@ function GoalDialog({
       setColor(goal?.color ?? COLOR_OPTIONS[0]);
       setDeadline(goal?.deadline ? new Date(goal.deadline) : null);
       setCreateCategory(true);
+      setIsEmergency(goal?.isEmergency ?? false);
     }, 0);
     return () => clearTimeout(to);
   }, [open, goal]);
@@ -414,6 +442,28 @@ function GoalDialog({
                 />
               </label>
             )}
+
+            <label className="flex items-start gap-2.5 rounded-md border border-border/60 bg-muted/40 px-3 py-2.5">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                checked={isEmergency}
+                onChange={(e) => setIsEmergency(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">
+                  {t("goalIsEmergency")}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {t("goalEmergencyHint")}
+                </span>
+              </span>
+              <input
+                type="hidden"
+                name="isEmergency"
+                value={isEmergency ? "on" : "off"}
+              />
+            </label>
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>

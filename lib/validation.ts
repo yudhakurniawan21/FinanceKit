@@ -105,6 +105,11 @@ export const GoalSchema = z.object({
     .enum(["on", "off"])
     .optional()
     .transform((v) => v === "on"),
+  // Ditandai sebagai dana darurat (masuk perhitungan dana darurat).
+  isEmergency: z
+    .enum(["on", "off"])
+    .optional()
+    .transform((v) => v === "on"),
 });
 
 export const GoalAdjustSchema = z.object({

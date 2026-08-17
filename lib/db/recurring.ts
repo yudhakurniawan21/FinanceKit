@@ -48,6 +48,26 @@ export async function listRecurring(
   });
 }
 
+// Jadwal aktif yang jatuh tempo dalam `days` hari ke depan (action item).
+export async function listUpcomingRecurring(
+  userId: string,
+  days = 14
+): Promise<RecurringWithRefs[]> {
+  const from = new Date();
+  return prisma.recurringTransaction.findMany({
+    where: {
+      userId,
+      isActive: true,
+      nextRunDate: { gte: from, lte: addDays(from, days) },
+    },
+    include: {
+      category: { select: { name: true } },
+      account: { select: { name: true } },
+    },
+    orderBy: { nextRunDate: "asc" },
+  });
+}
+
 // Generate transaksi nyata untuk semua jadwal yang jatuh tempo (≤ hari ini).
 // Idempoten via constraint unik (recurringId, date) + majukan nextRunDate
 // dalam satu $transaction per jadwal. Kap 36 iterasi per jadwal dan 100

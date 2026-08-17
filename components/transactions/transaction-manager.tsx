@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Download,
   ChevronDown,
+  Repeat,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -48,11 +49,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { TransactionDialog } from "@/components/transactions/transaction-dialog";
+import {
+  RecurringDialog,
+  type RecurringPrefill,
+} from "@/components/recurring/recurring-manager";
 import { deleteTransactionAction } from "@/app/actions/transactions";
 import { formatDate, monthBounds } from "@/lib/formatting";
-import { formatMoney, formatNumber } from "@/lib/currencies";
+import { formatMoney, formatNumber, minorToMajor } from "@/lib/currencies";
 import { useI18n } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
+import { addMonths, format, max, startOfDay } from "date-fns";
 import type { DictKey } from "@/lib/i18n/dictionaries";
 import type { Category } from "@/lib/generated/prisma/client";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
@@ -86,6 +92,7 @@ export function TransactionManager({
   const { t } = useI18n();
   const [addOpen, setAddOpen] = useState(false);
   const [editTx, setEditTx] = useState<TransactionWithCategory | null>(null);
+  const [recurringTx, setRecurringTx] = useState<TransactionWithCategory | null>(null);
   const [deleteTx, setDeleteTx] = useState<TransactionWithCategory | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [activeType, setActiveType] = useState<"ALL" | "INCOME" | "EXPENSE" | "SAVINGS">("ALL");
@@ -95,6 +102,26 @@ export function TransactionManager({
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const recurringPrefill = useMemo<RecurringPrefill | null>(() => {
+    if (!recurringTx) return null;
+    const start = max([
+      addMonths(startOfDay(recurringTx.date), 1),
+      startOfDay(new Date()),
+    ]);
+    return {
+      description:
+        recurringTx.description ??
+        recurringTx.category?.name ??
+        t("convertFallbackDesc"),
+      amount: minorToMajor(recurringTx.amount, currency),
+      type: recurringTx.type as "INCOME" | "EXPENSE",
+      method: recurringTx.method,
+      categoryId: recurringTx.categoryId,
+      accountId: recurringTx.accountId,
+      startDate: format(start, "yyyy-MM-dd"),
+    };
+  }, [recurringTx, currency, t]);
 
   // refresh list setelah dialog tertutup (create/edit).
   useEffect(() => {
@@ -443,6 +470,16 @@ export function TransactionManager({
                       {formatMoney(tx.amount, currency, locale)}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
+                      {!tx.recurringId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t("convertToRecurring")}
+                          onClick={() => setRecurringTx(tx)}
+                        >
+                          <Repeat className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -582,6 +619,16 @@ export function TransactionManager({
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-1">
+                          {!tx.recurringId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-label={t("convertToRecurring")}
+                              onClick={() => setRecurringTx(tx)}
+                            >
+                              <Repeat className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -714,6 +761,20 @@ export function TransactionManager({
           locale={locale}
           wallets={wallets}
           goals={goals}
+        />
+      )}
+
+      {/* Konversi ke transaksi berulang */}
+      {recurringTx && recurringPrefill && (
+        <RecurringDialog
+          open={!!recurringTx}
+          onOpenChange={(o) => (o ? null : setRecurringTx(null))}
+          mode="create"
+          prefill={recurringPrefill}
+          categories={categories}
+          wallets={wallets}
+          currency={currency}
+          locale={locale}
         />
       )}
 

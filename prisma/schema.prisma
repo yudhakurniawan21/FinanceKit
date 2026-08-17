@@ -244,6 +244,7 @@ model Goal {
   deadline      DateTime?     @db.Date
   color         String?
   icon          String?
+  isEmergency   Boolean       @default(false) // dialokasikan sebagai dana darurat
   sortOrder     Int           @default(100)
   userId        String
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -8,8 +8,9 @@ import {
 } from "@/lib/db/transactions";
 import { processDueRecurring } from "@/lib/db/recurring";
 import { listWallets } from "@/lib/db/wallets";
-import { listGoals } from "@/lib/db/goals";
+import { listGoals, goalMonthlyNeeded } from "@/lib/db/goals";
 import { getNetWorthSummary } from "@/lib/db/net-worth";
+import { assessFinancialHealth } from "@/lib/financial-health";
 import { monthBounds, formatDate } from "@/lib/formatting";
 import DashboardView from "@/components/dashboard/dashboard-view";
 import { redirect } from "next/navigation";
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
   const { start: mStart, end: mEnd } = monthBounds(now, timeZone);
   const todayLabel = formatDate(now, dateFormat, timeZone, locale);
 
-  const [monthly, byCat, recent, stats, budget, wallets, goals, nw] =
+  const [monthly, byCat, recent, stats, budget, wallets, goals, nw, health] =
     await Promise.all([
       monthlyTotals(user.user.id, 6, timeZone),
       expenseByCategory(user.user.id, mStart, mEnd),
@@ -38,12 +39,23 @@ export default async function DashboardPage() {
       listWallets(user.user.id),
       listGoals(user.user.id),
       getNetWorthSummary(user.user.id),
+      assessFinancialHealth(user.user.id, {
+        currency,
+        locale,
+        timeZone,
+        dateFormat,
+      }),
       // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
       processDueRecurring(user.user.id),
     ]);
 
   const totalBalance = wallets.reduce((acc, w) => acc + w.balance, 0);
   const totalSaved = goals.reduce((acc, g) => acc + g.currentAmount, 0);
+  const goalMonthly: Record<string, number> = Object.fromEntries(
+    goals
+      .map((g) => [g.id, goalMonthlyNeeded(g, now)])
+      .filter(([, v]) => v != null)
+  );
 
   return (
     <DashboardView
@@ -62,6 +74,9 @@ export default async function DashboardPage() {
       netWorth={nw.netWorth}
       totalAssets={nw.totalAssets}
       totalLiabilities={nw.totalLiabilities}
+      health={health.report}
+      actions={health.actions}
+      goalMonthly={goalMonthly}
     />
   );
 }

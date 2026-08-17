@@ -7,7 +7,7 @@ import {
   Line,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   CartesianGrid,
   PieChart,
   Pie,
@@ -32,10 +32,15 @@ import {
   PiggyBank,
   Landmark,
   Scale,
+  ChevronRight,
+  CircleCheck,
+  Info,
 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
 import type { WalletWithBalance } from "@/lib/db/wallets";
 import type { Goal } from "@/lib/generated/prisma/client";
+import type { HealthReport, ActionItem } from "@/lib/financial-health";
 
 const CHART_COLORS = {
   income: "var(--positive)",
@@ -61,6 +66,9 @@ export default function DashboardView({
   netWorth,
   totalAssets,
   totalLiabilities,
+  health,
+  actions,
+  goalMonthly,
 }: {
   currency: string;
   todayLabel: string;
@@ -77,6 +85,9 @@ export default function DashboardView({
   netWorth: number;
   totalAssets: number;
   totalLiabilities: number;
+  health: HealthReport;
+  actions: ActionItem[];
+  goalMonthly: Record<string, number>;
 }) {
   const { t, locale } = useI18n();
   return (
@@ -143,6 +154,12 @@ export default function DashboardView({
         />
       </div>
 
+      {/* Kesehatan keuangan + aksi prioritas */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HealthCard health={health} className="lg:col-span-2" />
+        <ActionCard actions={actions} />
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Line chart: monthly totals */}
         <Card className="lg:col-span-2">
@@ -167,6 +184,7 @@ export default function DashboardView({
           totalSaved={totalSaved}
           currency={currency}
           locale={locale}
+          goalMonthly={goalMonthly}
         />
       </div>
 
@@ -277,6 +295,227 @@ export default function DashboardView({
   );
 }
 
+const GRADE_KEYS = {
+  excellent: "gradeExcellent",
+  healthy: "gradeHealthy",
+  fair: "gradeFair",
+  poor: "gradePoor",
+  risky: "gradeRisky",
+} as const;
+
+const GRADE_COLORS = {
+  excellent: "var(--positive)",
+  healthy: "var(--positive)",
+  fair: "#eab308",
+  poor: "#f97316",
+  risky: "var(--destructive)",
+} as const;
+
+const STATUS_COLORS = {
+  good: "var(--positive)",
+  warning: "#eab308",
+  bad: "var(--destructive)",
+  neutral: "var(--muted-foreground)",
+} as const;
+
+function HealthCard({
+  health,
+  className,
+}: {
+  health: HealthReport;
+  className?: string;
+}) {
+  const { t } = useI18n();
+
+  if (health.insufficient) {
+    return (
+      <Card className={className}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <PiggyBank className="h-4 w-4 text-primary" />
+            {t("healthTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="font-medium">{t("healthInsufficientTitle")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("healthInsufficientDesc")}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const gradeKey = GRADE_KEYS[health.grade];
+  const gradeColor = GRADE_COLORS[health.grade];
+  const R = 50;
+  const C = 2 * Math.PI * R;
+
+  return (
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <PiggyBank className="h-4 w-4 text-primary" />
+            {t("healthTitle")}
+          </CardTitle>
+          <CardDescription>{t("healthDesc")}</CardDescription>
+        </div>
+        <Link
+          href="/insights"
+          className="shrink-0 text-sm font-medium underline"
+        >
+          {t("healthAnalyze")}
+        </Link>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="relative mx-auto h-28 w-28 shrink-0 sm:mx-0">
+            <svg viewBox="0 0 120 120" className="h-full w-full">
+              <circle
+                cx="60"
+                cy="60"
+                r={R}
+                fill="none"
+                stroke="var(--muted)"
+                strokeWidth="10"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r={R}
+                fill="none"
+                stroke={gradeColor}
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={`${(health.score / 100) * C} ${C}`}
+                transform="rotate(-90 60 60)"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold tabular-nums">
+                {health.score}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {t("healthScoreLabel").toLowerCase()}
+              </span>
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <p
+              className="text-lg font-semibold"
+              style={{ color: gradeColor }}
+            >
+              {t(gradeKey)}
+            </p>
+            {health.metrics.map((m) => (
+              <div key={m.key}>
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: STATUS_COLORS[m.status],
+                      }}
+                    />
+                    <span className="truncate">{t(m.labelKey)}</span>
+                    <Tooltip>
+                      <TooltipTrigger className="shrink-0 cursor-help text-muted-foreground/60 hover:text-foreground">
+                        <Info className="h-3 w-3" />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="max-w-xs items-start text-left"
+                      >
+                        {t(m.explainKey, m.explainParams)}
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {m.detail === "—"
+                      ? "—"
+                      : m.key === "emergencyFund"
+                        ? t("healthDetailMonths", { months: m.detail })
+                        : m.key === "cashFlow"
+                          ? t("healthDetailDeficit", {
+                              count: m.detail,
+                              total: m.tipParams.total ?? m.detail,
+                            })
+                          : m.detail}
+                  </span>
+                </div>
+                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${m.score}%`,
+                      backgroundColor: STATUS_COLORS[m.status],
+                    }}
+                  />
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t(m.tipKey, m.tipParams)}
+                </p>
+              </div>
+            ))}
+            <p className="border-t pt-2 text-[11px] text-muted-foreground/80">
+              {t("healthFootNote")}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ActionCard({ actions }: { actions: ActionItem[] }) {
+  const { t } = useI18n();
+  const dotColor = {
+    high: "bg-destructive",
+    medium: "bg-amber-500",
+    low: "bg-muted-foreground/50",
+  } as const;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <CircleCheck className="h-4 w-4 text-primary" />
+          {t("actionCardTitle")}
+        </CardTitle>
+        <CardDescription>{t("actionCardDesc")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        {actions.length === 0 ? (
+          <p className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
+            <CircleCheck className="h-4 w-4 shrink-0 text-positive" />
+            {t("actionNone")}
+          </p>
+        ) : (
+          actions.map((a) => (
+            <Link
+              key={a.key}
+              href={a.href}
+              className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${dotColor[a.severity]}`}
+                />
+                <span className="min-w-0 text-sm">
+                  {t(a.titleKey, a.titleParams)}
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </Link>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function StatCard({
   icon,
   label,
@@ -382,11 +621,13 @@ function GoalsCard({
   totalSaved,
   currency,
   locale,
+  goalMonthly,
 }: {
   goals: Goal[];
   totalSaved: number;
   currency: string;
   locale: string;
+  goalMonthly: Record<string, number>;
 }) {
   const { t } = useI18n();
   return (
@@ -453,6 +694,17 @@ function GoalsCard({
                       style={{ width: `${pct}%` }}
                     />
                   </div>
+                  {goalMonthly[goal.id] != null && (
+                    <p className="mt-1 text-xs font-medium text-positive">
+                      {t("goalMonthlyNeeded", {
+                        amount: formatMoney(
+                          goalMonthly[goal.id],
+                          currency,
+                          locale
+                        ),
+                      })}
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -538,7 +790,7 @@ function MonthlyLine({
           }
           tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
         />
-        <Tooltip content={<ChartTooltip currency={currency} locale={locale} />} />
+        <RechartsTooltip content={<ChartTooltip currency={currency} locale={locale} />} />
         <Line
           type="monotone"
           dataKey={incomeKey}
@@ -573,7 +825,7 @@ function CategoryPie({
   return (
     <ResponsiveContainer width="100%" height={220}>
       <PieChart>
-        <Tooltip
+        <RechartsTooltip
           content={<ChartTooltip currency={currency} locale={locale} />}
         />
         <Legend layout="vertical" verticalAlign="middle" align="right" />

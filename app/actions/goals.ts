@@ -35,6 +35,7 @@ export async function createGoalAction(
         deadline: v.deadline ? new Date(v.deadline) : null,
         color: v.color ?? null,
         icon: v.icon ?? null,
+        isEmergency: v.isEmergency,
         sortOrder: count,
       },
     });
@@ -101,6 +102,7 @@ export async function updateGoalAction(
         deadline: v.deadline ? new Date(v.deadline) : null,
         color: v.color ?? null,
         icon: v.icon ?? null,
+        isEmergency: v.isEmergency,
       },
     });
 

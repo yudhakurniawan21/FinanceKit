@@ -1,6 +1,8 @@
 import { DICTIONARIES, type DictKey } from "./dictionaries";
 import { LOCALES } from "@/lib/constants";
 
+export type { DictKey } from "./dictionaries";
+
 export type Locale = (typeof LOCALES)[number]["value"];
 
 const DEFAULT_LOCALE: Locale = "id-ID";
