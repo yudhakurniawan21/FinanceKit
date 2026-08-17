@@ -16,10 +16,20 @@ export default async function TransactionsPage() {
 
   const LIMIT = 500;
 
-  const [categories, transactions, wallets, totalCount] = await Promise.all([
+  const [categories, transactions, wallets, goals, totalCount] = await Promise.all([
     ensureDefaultCategories(user.user.id),
     listTransactions(user.user.id, { limit: LIMIT }),
     ensureDefaultWallet(user.user.id).then(() => listWallets(user.user.id)),
+    prisma.goal.findMany({
+      where: { userId: user.user.id },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        currentAmount: true,
+        targetAmount: true,
+      },
+    }),
     // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
     processDueRecurring(user.user.id).then(() =>
       prisma.transaction.count({ where: { userId: user.user.id } })
@@ -48,6 +58,7 @@ export default async function TransactionsPage() {
         timeZone={timeZone}
         locale={locale}
         wallets={wallets.map((w) => ({ id: w.id, name: w.name }))}
+        goals={goals}
         totalCount={totalCount}
       />
     </div>

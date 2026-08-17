@@ -63,10 +63,19 @@ export function CategoryManager({
   categories,
   currency,
   spentByCategory,
+  goals,
 }: {
   categories: Category[];
   currency: string;
   spentByCategory: Record<string, number>;
+  goals: {
+    id: string;
+    name: string;
+    currentAmount: number;
+    targetAmount: number;
+    color: string | null;
+    icon: string | null;
+  }[];
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -128,6 +137,7 @@ export function CategoryManager({
         isPending={isPending}
         action={action}
         currency={currency}
+        goals={goals}
       />
 
       {/* Edit category dialog */}
@@ -201,6 +211,7 @@ function AddCategoryDialog({
   isPending,
   action,
   currency,
+  goals,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -208,9 +219,25 @@ function AddCategoryDialog({
   isPending: boolean;
   action: (formData: FormData) => void;
   currency: string;
+  goals: {
+    id: string;
+    name: string;
+    currentAmount: number;
+    targetAmount: number;
+    color: string | null;
+    icon: string | null;
+  }[];
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
+  const [isSavings, setIsSavings] = useState(false);
+  const [name, setName] = useState("");
+  const [goalId, setGoalId] = useState("");
+
+  const pickGoal = (g: (typeof goals)[number]) => {
+    setName(g.name);
+    setGoalId(g.id);
+  };
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -230,13 +257,73 @@ function AddCategoryDialog({
                 name="name"
                 placeholder={t("namePlaceholder")}
                 required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </Field>
 
-            <TypeField value={type} onChange={setType} />
+            {isSavings ? (
+              <input type="hidden" name="type" value="EXPENSE" />
+            ) : (
+              <TypeField value={type} onChange={setType} />
+            )}
+
+            <KindField
+              value={isSavings}
+              onChange={(v) => {
+                setIsSavings(v);
+                if (v) setType("EXPENSE");
+              }}
+            />
+
+            {isSavings && goals.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>{t("fromSavingsData")}</Label>
+                <div className="flex max-h-36 flex-col gap-1 overflow-y-auto pr-1">
+                  {goals.map((g) => {
+                    const selected = goalId === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => pickGoal(g)}
+                        aria-pressed={selected}
+                        className={
+                          "flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm " +
+                          (selected
+                            ? "border-primary bg-primary/10"
+                            : "border-input hover:bg-muted/50")
+                        }
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor:
+                                g.color ?? "var(--muted-foreground)",
+                            }}
+                          />
+                          <span className="truncate font-medium">{g.name}</span>
+                        </span>
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {formatMoney(g.currentAmount, currency, locale)} /{" "}
+                          {formatMoney(g.targetAmount, currency, locale)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {isSavings && (
+              <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {t("savingsCategoryHint")}
+              </p>
+            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {type === "EXPENSE" && (
+              {!isSavings && type === "EXPENSE" && (
                 <MoneyInput
                   name="budget"
                   label={t("budgetLabel")}
@@ -245,12 +332,19 @@ function AddCategoryDialog({
                 />
               )}
 
-              <div className={type === "EXPENSE" ? "" : "sm:col-span-2"}>
+              <div className={!isSavings && type === "EXPENSE" ? "" : "sm:col-span-2"}>
                 <IconField />
               </div>
             </div>
 
             <ColorField />
+
+            <input
+              type="hidden"
+              name="isSavings"
+              value={isSavings ? "on" : "off"}
+            />
+            {isSavings && <input type="hidden" name="goalId" value={goalId} />}
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>
@@ -286,6 +380,7 @@ function CategoryEditDialog({
   const router = useRouter();
   const { t } = useI18n();
   const [state, action, isPending] = useActionState(updateCategoryAction, null);
+  const [isSavings, setIsSavings] = useState(cat.isSavings);
 
   useEffect(() => {
     if (!state?.success) return;
@@ -318,9 +413,23 @@ function CategoryEditDialog({
               />
             </Field>
 
+            <KindField value={isSavings} onChange={setIsSavings} />
+
+            {isSavings && (
+              <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {t("savingsCategoryHint")}
+              </p>
+            )}
+
             <IconField defaultValue={cat.icon ?? "Plus"} />
 
             <ColorField defaultValue={cat.color ?? COLOR_OPTIONS[0]} />
+
+            <input
+              type="hidden"
+              name="isSavings"
+              value={isSavings ? "on" : "off"}
+            />
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>
@@ -371,6 +480,55 @@ function TypeField({
         ))}
       </div>
       <input type="hidden" name="type" value={value} />
+    </div>
+  );
+}
+
+// Pengeluaran biasa vs kategori tabungan (dana dipindah, bukan dikonsumsi).
+function KindField({
+  value,
+  onChange,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="space-y-1.5">
+      <Label>{t("categoryKindLabel")}</Label>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(false)}
+          aria-pressed={!value}
+          className={
+            "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
+            (!value
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-input text-muted-foreground")
+          }
+        >
+          {t("expense")}
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(true)}
+          aria-pressed={value}
+          className={
+            "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
+            (value
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-input text-muted-foreground")
+          }
+        >
+          {t("savingsCategoryLabel")}
+        </button>
+      </div>
+      <input
+        type="hidden"
+        name="isSavings"
+        value={value ? "on" : "off"}
+      />
     </div>
   );
 }
@@ -559,6 +717,11 @@ function CategoryGroup({
                     style={{ backgroundColor: cat.color ?? "var(--muted-foreground)" }}
                   />
                   <span className="truncate font-medium">{cat.name}</span>
+                  {cat.isSavings && (
+                    <span className="shrink-0 rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("badgeSavings")}
+                    </span>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button
@@ -581,7 +744,7 @@ function CategoryGroup({
                 </div>
               </div>
 
-              {cat.type === "EXPENSE" && (
+              {!cat.isSavings && cat.type === "EXPENSE" && (
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <Label
                     htmlFor={`budget-${cat.id}`}

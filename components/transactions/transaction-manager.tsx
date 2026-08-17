@@ -69,6 +69,7 @@ export function TransactionManager({
   timeZone,
   locale,
   wallets,
+  goals,
   totalCount,
 }: {
   transactions: TransactionWithCategory[];
@@ -78,6 +79,7 @@ export function TransactionManager({
   timeZone: string;
   locale: string;
   wallets: { id: string; name: string }[];
+  goals: { id: string; name: string; currentAmount: number; targetAmount: number }[];
   totalCount?: number;
 }) {
   const router = useRouter();
@@ -86,7 +88,7 @@ export function TransactionManager({
   const [editTx, setEditTx] = useState<TransactionWithCategory | null>(null);
   const [deleteTx, setDeleteTx] = useState<TransactionWithCategory | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [activeType, setActiveType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [activeType, setActiveType] = useState<"ALL" | "INCOME" | "EXPENSE" | "SAVINGS">("ALL");
   const [accountFilter, setAccountFilter] = useState("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -103,7 +105,9 @@ export function TransactionManager({
 
   const filtered = useMemo(() => {
     let list = transactions;
-    if (activeType !== "ALL") {
+    if (activeType === "SAVINGS") {
+      list = list.filter((t) => t.category?.isSavings === true);
+    } else if (activeType !== "ALL") {
       list = list.filter((t) => t.type === activeType);
     }
     if (accountFilter) {
@@ -180,7 +184,11 @@ export function TransactionManager({
       Object.fromEntries(
         categories.map((c) => [
           c.id,
-          { name: c.name, color: c.color ?? "var(--muted-foreground)" },
+          {
+            name: c.name,
+            color: c.color ?? "var(--muted-foreground)",
+            isSavings: c.isSavings,
+          },
         ])
       ),
     [categories]
@@ -198,16 +206,21 @@ export function TransactionManager({
     }
   }
 
-  const income = transactions.filter((t) => t.type === "INCOME").reduce((a, t) => a + t.amount, 0);
+  const income = transactions
+    .filter((t) => t.type === "INCOME" && t.category?.isSavings !== true)
+    .reduce((a, t) => a + t.amount, 0);
   const expense = transactions
-    .filter((t) => t.type === "EXPENSE")
+    .filter((t) => t.type === "EXPENSE" && t.category?.isSavings !== true)
+    .reduce((a, t) => a + t.amount, 0);
+  const savings = transactions
+    .filter((t) => t.category?.isSavings === true)
     .reduce((a, t) => a + t.amount, 0);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {(["ALL", "INCOME", "EXPENSE"] as const).map((type) => (
+          {(["ALL", "INCOME", "EXPENSE", "SAVINGS"] as const).map((type) => (
             <Button
               key={type}
               variant={activeType === type ? "default" : "outline"}
@@ -217,7 +230,15 @@ export function TransactionManager({
                 setPage(1);
               }}
             >
-              {t(type === "ALL" ? "all" : type === "INCOME" ? "income" : "expense")}
+              {t(
+                type === "ALL"
+                  ? "all"
+                  : type === "INCOME"
+                    ? "income"
+                    : type === "EXPENSE"
+                      ? "expense"
+                      : "badgeSavings"
+              )}
             </Button>
           ))}
         </div>
@@ -321,6 +342,12 @@ export function TransactionManager({
           </span>
         </span>
         <span>
+          {t("badgeSavings")}:{" "}
+          <span className="font-medium">
+            {formatMoney(savings, currency, locale)}
+          </span>
+        </span>
+        <span>
           {t("net")}:{" "}
           <span className="font-medium">
             {formatMoney(income - expense, currency, locale)}
@@ -372,6 +399,18 @@ export function TransactionManager({
                           style={{ backgroundColor: cat.color }}
                         />
                         <span className="truncate">{cat.name}</span>
+                        {cat.isSavings && (
+                          <>
+                            <span className="shrink-0 rounded-full border border-border bg-muted/60 px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide">
+                              {t("badgeSavings")}
+                            </span>
+                            {tx.goal && (
+                              <span className="truncate font-medium">
+                                → {tx.goal.name}
+                              </span>
+                            )}
+                          </>
+                        )}
                       </p>
                     )}
                     {!cat && <span />}
@@ -495,6 +534,18 @@ export function TransactionManager({
                               style={{ backgroundColor: cat.color }}
                             />
                             {cat.name}
+                            {cat.isSavings && (
+                              <>
+                                <span className="shrink-0 rounded-full border border-border bg-muted/60 px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  {t("badgeSavings")}
+                                </span>
+                                {tx.goal && (
+                                  <span className="text-xs text-muted-foreground">
+                                    → {tx.goal.name}
+                                  </span>
+                                )}
+                              </>
+                            )}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -648,6 +699,7 @@ export function TransactionManager({
         currency={currency}
         locale={locale}
         wallets={wallets}
+        goals={goals}
       />
 
       {/* Edit dialog */}
@@ -661,6 +713,7 @@ export function TransactionManager({
           currency={currency}
           locale={locale}
           wallets={wallets}
+          goals={goals}
         />
       )}
 

@@ -6,8 +6,14 @@ import {
 import { monthBounds } from "@/lib/formatting";
 
 export interface TransactionWithCategory extends Transaction {
-  category: { name: string; color: string | null; icon: string | null } | null;
+  category: {
+    name: string;
+    color: string | null;
+    icon: string | null;
+    isSavings: boolean;
+  } | null;
   account: { id: string; name: string; color: string | null } | null;
+  goal: { id: string; name: string } | null;
 }
 
 export async function listTransactions(
@@ -31,8 +37,11 @@ export async function listTransactions(
       ...(params.categoryId ? { categoryId: params.categoryId } : {}),
     },
     include: {
-      category: { select: { name: true, color: true, icon: true } },
+      category: {
+        select: { name: true, color: true, icon: true, isSavings: true },
+      },
       account: { select: { id: true, name: true, color: true } },
+      goal: { select: { id: true, name: true } },
     },
     orderBy: { date: "desc" },
     take: params.limit,
@@ -62,6 +71,11 @@ export async function monthlyTotals(userId: string, months = 6, timeZone = "Asia
     FROM "transaction"
     WHERE "userId" = ${userId}
       AND "date" >= ${startDate}
+      AND NOT EXISTS (
+        SELECT 1 FROM "category" c
+        WHERE c.id = "transaction"."categoryId"
+          AND c."isSavings" = true
+      )
     GROUP BY month, "type"
     ORDER BY month ASC
   `;
@@ -93,6 +107,7 @@ export async function expenseByCategory(
     where: {
       userId,
       type: "EXPENSE",
+      category: { isSavings: false },
       date: { gte: start, lte: end },
     },
     _sum: { amount: true },
@@ -140,6 +155,7 @@ export async function budgetRemaining(
       userId,
       type: "EXPENSE",
       date: { gte: start, lte: end },
+      category: { isSavings: false },
       categoryId: { in: cats.map((c) => c.id) },
     },
     _sum: { amount: true },
@@ -169,6 +185,7 @@ export async function monthSpentByCategory(
       userId,
       type: "EXPENSE",
       date: { gte: start, lte: end },
+      category: { isSavings: false },
       categoryId: { not: null },
     },
     _sum: { amount: true },
@@ -178,24 +195,52 @@ export async function monthSpentByCategory(
   );
 }
 
-// Total pemasukan & pengeluaran periode ini (minor unit).
+// Total pemasukan, pengeluaran, dan arus tabungan periode ini (minor unit).
+// Tabungan (kategori isSavings) dipisah: bukan pengeluaran konsumtif,
+// melainkan pemindahan dana ke tujuan menabung.
 export async function sumByType(
   userId: string,
   start: Date,
   end: Date
-): Promise<{ income: number; expense: number }> {
-  const rows = await prisma.transaction.groupBy({
-    by: ["type"],
-    where: { userId, date: { gte: start, lte: end } },
-    _sum: { amount: true },
-  });
+): Promise<{
+  income: number;
+  expense: number;
+  savingsIn: number;
+  savingsOut: number;
+}> {
+  const [regular, savings] = await Promise.all([
+    prisma.transaction.groupBy({
+      by: ["type"],
+      where: {
+        userId,
+        date: { gte: start, lte: end },
+        OR: [{ categoryId: null }, { category: { isSavings: false } }],
+      },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ["type"],
+      where: {
+        userId,
+        date: { gte: start, lte: end },
+        category: { isSavings: true },
+      },
+      _sum: { amount: true },
+    }),
+  ]);
   const income = Number(
-    rows.find((r) => r.type === "INCOME")?._sum?.amount ?? 0
+    regular.find((r) => r.type === "INCOME")?._sum?.amount ?? 0
   );
   const expense = Number(
-    rows.find((r) => r.type === "EXPENSE")?._sum?.amount ?? 0
+    regular.find((r) => r.type === "EXPENSE")?._sum?.amount ?? 0
   );
-  return { income, expense };
+  const savingsIn = Number(
+    savings.find((r) => r.type === "EXPENSE")?._sum?.amount ?? 0
+  );
+  const savingsOut = Number(
+    savings.find((r) => r.type === "INCOME")?._sum?.amount ?? 0
+  );
+  return { income, expense, savingsIn, savingsOut };
 }
 
 // Agregat per kategori (expense ATAU income) + budget kategori utk laporan.
@@ -218,6 +263,7 @@ export async function categoryTotals(
     where: {
       userId,
       type,
+      category: { isSavings: false },
       date: { gte: start, lte: end },
       categoryId: { not: null },
     },
@@ -264,6 +310,11 @@ export async function dailyTotals(
       AND "type" = 'EXPENSE'
       AND "date" >= ${start}
       AND "date" <= ${end}
+      AND NOT EXISTS (
+        SELECT 1 FROM "category" c
+        WHERE c.id = "transaction"."categoryId"
+          AND c."isSavings" = true
+      )
     GROUP BY day
     ORDER BY day ASC
   `;

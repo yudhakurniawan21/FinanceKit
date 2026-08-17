@@ -13,6 +13,7 @@ export const TransactionSchema = z.object({
   description: z.string().max(500).optional(),
   method: PaymentMethodSchema.optional(),
   accountId: z.string().optional(),
+  goalId: z.string().optional(),
 });
 
 export const CategorySchema = z.object({
@@ -24,13 +25,27 @@ export const CategorySchema = z.object({
     .number({ error: "Budget harus angka" })
     .nonnegative("Budget tidak boleh negatif")
     .optional(),
+  isSavings: z
+    .enum(["on", "off"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "on")),
+  goalId: z.string().optional(),
 });
 
-// Edit kategori: nama/ikon/warna saja (type & budget tidak diubah di sini).
+// Edit kategori: nama/ikon/warna/budget + penanda tabungan saja
+// (type tidak diubah di sini).
 export const CategoryEditSchema = z.object({
   name: z.string().min(1, "Nama kategori wajib diisi").max(50),
   icon: z.string().optional(),
   color: z.string().optional(),
+  budget: z.coerce
+    .number({ error: "Budget harus angka" })
+    .nonnegative("Budget tidak boleh negatif")
+    .optional(),
+  isSavings: z
+    .enum(["on", "off"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "on")),
 });
 
 export const UserSettingsSchema = z.object({
@@ -85,6 +100,11 @@ export const GoalSchema = z.object({
   deadline: z.string().optional(),
   color: z.string().optional(),
   icon: z.string().optional(),
+  // Buat kategori tabungan tertaut secara otomatis (default aktif di UI).
+  createCategory: z
+    .enum(["on", "off"])
+    .optional()
+    .transform((v) => v === "on"),
 });
 
 export const GoalAdjustSchema = z.object({

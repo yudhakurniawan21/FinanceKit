@@ -30,7 +30,20 @@ export async function createCategoryAction(
       ? majorToMinor(v.budget, currency)
       : null;
 
-  const baseSlug = `${v.type.toLowerCase()}-${slugify(v.name)}`;
+  // Tautan ke goal hanya valid untuk kategori tabungan (dipaksa EXPENSE).
+  let goalId: string | null = null;
+  if (v.goalId) {
+    const goal = await prisma.goal.findFirst({
+      where: { id: v.goalId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!goal) return { error: translate(locale, "errGoalInvalid") };
+    goalId = v.goalId;
+  }
+  const isSavings = v.isSavings ?? goalId !== null;
+  const type = (goalId ? "EXPENSE" : v.type) as TransactionType;
+
+  const baseSlug = `${type.toLowerCase()}-${slugify(v.name)}`;
   let slug = baseSlug;
   let i = 1;
   while (await prisma.category.findFirst({ where: { userId: session.user.id, slug } })) {
@@ -42,10 +55,12 @@ export async function createCategoryAction(
       userId: session.user.id,
       name: v.name,
       slug,
-      type: v.type as TransactionType,
+      type,
       icon: v.icon ?? null,
       color: v.color ?? null,
       budget: budgetMinor,
+      isSavings,
+      goalId,
     },
   });
 
@@ -78,6 +93,7 @@ export async function updateCategoryAction(
       name: v.name,
       icon: v.icon ?? null,
       color: v.color ?? null,
+      isSavings: v.isSavings ?? undefined,
     },
   });
 

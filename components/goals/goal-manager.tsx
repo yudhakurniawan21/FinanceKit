@@ -297,12 +297,14 @@ function GoalDialog({
   const [deadline, setDeadline] = useState<Date | null>(
     goal?.deadline ? new Date(goal.deadline) : null
   );
+  const [createCategory, setCreateCategory] = useState(true);
 
   useEffect(() => {
     if (!open) return;
     const to = setTimeout(() => {
       setColor(goal?.color ?? COLOR_OPTIONS[0]);
       setDeadline(goal?.deadline ? new Date(goal.deadline) : null);
+      setCreateCategory(true);
     }, 0);
     return () => clearTimeout(to);
   }, [open, goal]);
@@ -388,6 +390,30 @@ function GoalDialog({
               </div>
               <input type="hidden" name="color" value={color} />
             </Field>
+
+            {mode === "create" && (
+              <label className="flex items-start gap-2.5 rounded-md border border-border/60 bg-muted/40 px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4"
+                  checked={createCategory}
+                  onChange={(e) => setCreateCategory(e.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">
+                    {t("autoCategoryLabel")}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {t("savingsCategoryHint")}
+                  </span>
+                </span>
+                <input
+                  type="hidden"
+                  name="createCategory"
+                  value={createCategory ? "on" : "off"}
+                />
+              </label>
+            )}
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>
@@ -490,6 +516,12 @@ function AdjustDialog({
                 target: formatMoney(goal.targetAmount, currency, locale),
               })}
             </p>
+
+            {direction === "DEPOSIT" && (
+              <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {t("goalWalletHint")}
+              </p>
+            )}
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>

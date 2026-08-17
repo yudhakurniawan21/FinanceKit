@@ -26,7 +26,7 @@ import {
   createTransactionAction,
   updateTransactionAction,
 } from "@/app/actions/transactions";
-import { minorToMajor } from "@/lib/currencies";
+import { minorToMajor, formatMoney } from "@/lib/currencies";
 import { useI18n } from "@/lib/i18n/client";
 import type { Category, Transaction } from "@/lib/generated/prisma/client";
 
@@ -39,6 +39,7 @@ export function TransactionDialog({
   currency,
   locale,
   wallets,
+  goals,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -48,6 +49,7 @@ export function TransactionDialog({
   currency: string;
   locale: string;
   wallets: { id: string; name: string }[];
+  goals: { id: string; name: string; currentAmount: number; targetAmount: number }[];
 }) {
   const { t } = useI18n();
   const [date, setDate] = useState<Date | null>(
@@ -59,6 +61,7 @@ export function TransactionDialog({
   const [category, setCategory] = useState<string>(
     transaction?.categoryId ?? ""
   );
+  const [goal, setGoal] = useState<string>(transaction?.goalId ?? "");
   const [method, setMethod] = useState<string>(transaction?.method ?? "");
   const [account, setAccount] = useState<string>(
     transaction?.accountId ?? ""
@@ -72,6 +75,7 @@ export function TransactionDialog({
         setDate(new Date());
         setType("EXPENSE");
         setCategory("");
+        setGoal("");
         setMethod("");
         setAccount(wallets.length === 1 ? wallets[0].id : "");
         setDesc("");
@@ -79,6 +83,7 @@ export function TransactionDialog({
         setDate(transaction ? new Date(transaction.date) : new Date());
         setType((transaction?.type as "INCOME" | "EXPENSE") ?? "EXPENSE");
         setCategory(transaction?.categoryId ?? "");
+        setGoal(transaction?.goalId ?? "");
         setMethod(transaction?.method ?? "");
         setAccount(transaction?.accountId ?? "");
         setDesc(transaction?.description ?? "");
@@ -109,7 +114,16 @@ export function TransactionDialog({
     { value: "CARD", label: t("methodCard") },
   ];
 
-  const categoryOptions = categories.filter((c) => c.type === type);
+  // Kategori tabungan tampil di kedua jenis: EXPENSE = setor, INCOME = penarikan.
+  const categoryOptions = categories.filter(
+    (c) => c.type === type || c.isSavings
+  );
+  // Kategori tabungan yang tertaut goal → goal terisi otomatis.
+  // "" = belum dipilih (fallback ke tautan kategori); "__none__" = sengaja tanpa tujuan.
+  const selectedCategory = categories.find((c) => c.id === category);
+  const showGoal = (selectedCategory?.isSavings ?? false) && category !== "";
+  const selectedGoalId =
+    goal === "" ? (selectedCategory?.goalId ?? "") : goal === "__none__" ? "" : goal;
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -267,6 +281,46 @@ export function TransactionDialog({
                   </SelectContent>
                 </Select>
                 <input type="hidden" name="accountId" value={account} />
+              </Field>
+            )}
+
+            {showGoal && (
+              <Field label={t("goalLabel")}>
+                <Select
+                  value={selectedGoalId || "__none__"}
+                  onValueChange={(v: string | null) =>
+                    setGoal(v === "__none__" ? "__none__" : (v ?? ""))
+                  }
+                  disabled={isPending}
+                  items={[
+                    { value: "__none__", label: t("noGoal") },
+                    ...goals.map((g) => ({
+                      value: g.id,
+                      label: g.name,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectGoalPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__" label={t("noGoal")}>
+                      {t("noGoal")}
+                    </SelectItem>
+                    {goals.map((g) => (
+                      <SelectItem value={g.id} key={g.id} label={g.name}>
+                        <span className="flex items-center justify-between gap-3">
+                          {g.name}
+                          <span className="text-xs text-muted-foreground">
+                            {formatMoney(g.currentAmount, currency, locale)} /{" "}
+                            {formatMoney(g.targetAmount, currency, locale)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="goalId" value={selectedGoalId} />
               </Field>
             )}
 

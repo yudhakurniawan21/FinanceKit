@@ -2,6 +2,14 @@ import prisma from "@/lib/prisma";
 import { listWallets } from "@/lib/db/wallets";
 import type { NetWorthItem } from "@/lib/generated/prisma/client";
 
+export interface GoalSavings {
+  id: string;
+  name: string;
+  color: string | null;
+  currentAmount: number;
+  targetAmount: number;
+}
+
 export interface NetWorthSummary {
   // Aset likuid dari saldo dompet (otomatis).
   totalLiquid: number;
@@ -11,25 +19,41 @@ export interface NetWorthSummary {
   totalAssets: number;
   totalLiabilities: number;
   netWorth: number;
+  // Dana yang disisihkan ke tujuan menabung (otomatis).
+  goals: GoalSavings[];
+  totalGoals: number;
 }
 
-// Net worth = aset likuid (saldo dompet) + aset manual − kewajiban manual.
+// Net worth = aset likuid (saldo dompet) + aset manual + tabungan tujuan
+// − kewajiban manual.
 export async function getNetWorthSummary(
   userId: string
 ): Promise<NetWorthSummary> {
-  const [wallets, items] = await Promise.all([
+  const [wallets, items, goals] = await Promise.all([
     listWallets(userId),
     prisma.netWorthItem.findMany({
       where: { userId },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.goal.findMany({
+      where: { userId, currentAmount: { gt: 0 } },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        currentAmount: true,
+        targetAmount: true,
+      },
     }),
   ]);
 
   const totalLiquid = wallets.reduce((sum, w) => sum + w.balance, 0);
   const assets = items.filter((i) => i.type === "ASSET");
   const liabilities = items.filter((i) => i.type === "LIABILITY");
+  const totalGoals = goals.reduce((sum, g) => sum + g.currentAmount, 0);
   const totalAssets =
-    totalLiquid + assets.reduce((sum, i) => sum + i.value, 0);
+    totalLiquid + assets.reduce((sum, i) => sum + i.value, 0) + totalGoals;
   const totalLiabilities = liabilities.reduce((sum, i) => sum + i.value, 0);
 
   return {
@@ -39,6 +63,8 @@ export async function getNetWorthSummary(
     totalAssets,
     totalLiabilities,
     netWorth: totalAssets - totalLiabilities,
+    goals,
+    totalGoals,
   };
 }
 

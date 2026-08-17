@@ -47,8 +47,8 @@ export function ReportView({
   month: string;
   monthLabel: string;
   prevLabel: string;
-  cur: { income: number; expense: number };
-  prev: { income: number; expense: number };
+  cur: { income: number; expense: number; savingsIn: number; savingsOut: number };
+  prev: { income: number; expense: number; savingsIn: number; savingsOut: number };
   expenseByCategory: Agg[];
   incomeByCategory: Agg[];
   daily: Array<{ date: Date; amount: number }>;
@@ -121,6 +121,19 @@ export function ReportView({
           prevLabel={prevLabel}
         />
       </div>
+
+      {(cur.savingsIn > 0 || cur.savingsOut > 0) && (
+        <p className="text-sm text-muted-foreground">
+          {t("savingsFlowLabel")}:{" "}
+          <span className="font-medium text-foreground">
+            {t("savingsInLabel")} {formatMoney(cur.savingsIn, currency, locale)}
+          </span>{" "}
+          ·{" "}
+          <span className="font-medium text-foreground">
+            {t("savingsOutLabel")} {formatMoney(cur.savingsOut, currency, locale)}
+          </span>
+        </p>
+      )}
 
       {/* Daily spending chart */}
       <Card>

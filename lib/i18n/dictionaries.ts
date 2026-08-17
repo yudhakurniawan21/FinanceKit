@@ -206,6 +206,23 @@ const idDict = {
   noGoalsYet: "Belum ada tujuan tabungan",
   addGoalFirst: "Mulai dari target kecil — mis. dana darurat atau liburan.",
   errGoalInvalid: "Tujuan tabungan tidak valid.",
+  savingsCategoryLabel: "Tabungan",
+  categoryKindLabel: "Jenis kategori",
+  savingsCategoryHint:
+    "Transaksi kategori ini tidak dihitung sebagai pengeluaran — dana dipindahkan ke tabungan.",
+  goalLabel: "Tujuan tabungan (opsional)",
+  selectGoalPlaceholder: "Pilih tujuan tabungan",
+  noGoal: "Tanpa tujuan",
+  errGoalInsufficient:
+    "Saldo tujuan tidak mencukupi untuk penarikan sebesar itu.",
+  badgeSavings: "Tabungan",
+  fromSavingsData: "Dari tujuan tabungan",
+  autoCategoryLabel: "Buat kategori tabungan",
+  savingsInLabel: "Masuk tabungan",
+  savingsOutLabel: "Penarikan tabungan",
+  savingsFlowLabel: "Arus tabungan",
+  ctxSavingsMonth:
+    "- Arus tabungan bulan ini: masuk {in}, penarikan {out}",
 
   // ── Net Worth ─────────────────────────────────────────
   navNetWorth: "Net Worth",
@@ -330,6 +347,23 @@ const idDict = {
     "- Transaksi terbaru: {list}",
   ctxTypeIncome: "pemasukan",
   ctxTypeExpense: "pengeluaran",
+  ctxNetWorthHeader: "Ringkasan net worth saat ini ({currency}):",
+  ctxNetWorthAssets: "- Total aset: {amount}",
+  ctxNetWorthLiabilities: "- Total kewajiban: {amount}",
+  ctxNetWorthTotal: "- Net worth: {amount}",
+  ctxNetWorthAssetsTop: "- Aset terbesar: {list}",
+  ctxNetWorthLiabilitiesTop: "- Kewajiban terbesar: {list}",
+  ctxGoalsTotal: "- Total tabungan tujuan: {amount}",
+  ctxGoalsList:
+    "- Dana tujuan menabung: {list}",
+  savingsGoalsLabel: "Tabungan (Tujuan)",
+  savingsTotalLabel: "Total tabungan",
+  manageGoals: "Kelola",
+  goalWalletHint:
+    "Catatan: setoran tidak otomatis mengurangi saldo dompet. Pindahkan uang sungguhan ke rekening tabungan terpisah agar tidak terhitung dua kali di net worth.",
+  presetNetWorth: "Saran Net Worth",
+  promptNetWorth:
+    "Analisis net worth saya (termasuk dana tabungan tujuan dan aset): apakah posisi aset vs kewajiban saya sehat, dan berikan 3 langkah nyata untuk meningkatkannya (mis. mengurangi kewajiban berbunga tinggi, menambah aset likuid, mengejar target tabungan). Jawab singkat dalam Bahasa Indonesia.",
 
   // ── Error server actions ─────────────────────────────
   errSession: "Sesi tidak ditemukan.",
@@ -539,6 +573,23 @@ export const enDict: Dict = {
   noGoalsYet: "No savings goals yet",
   addGoalFirst: "Start with a small target — e.g. emergency fund or a trip.",
   errGoalInvalid: "Invalid savings goal.",
+  savingsCategoryLabel: "Savings",
+  categoryKindLabel: "Category kind",
+  savingsCategoryHint:
+    "Transactions in this category are not counted as spending — funds are moved into savings.",
+  goalLabel: "Savings goal (optional)",
+  selectGoalPlaceholder: "Select savings goal",
+  noGoal: "No goal",
+  errGoalInsufficient:
+    "Insufficient goal balance for this withdrawal.",
+  badgeSavings: "Savings",
+  fromSavingsData: "From savings goals",
+  autoCategoryLabel: "Create savings category",
+  savingsInLabel: "Into savings",
+  savingsOutLabel: "Withdrawn from savings",
+  savingsFlowLabel: "Savings flow",
+  ctxSavingsMonth:
+    "- Savings flow this month: {in} in, {out} withdrawn",
 
   navNetWorth: "Net Worth",
   netWorthPageDesc:
@@ -654,6 +705,22 @@ export const enDict: Dict = {
   ctxRecent: "- Recent transactions: {list}",
   ctxTypeIncome: "income",
   ctxTypeExpense: "expense",
+  ctxNetWorthHeader: "Current net worth summary ({currency}):",
+  ctxNetWorthAssets: "- Total assets: {amount}",
+  ctxNetWorthLiabilities: "- Total liabilities: {amount}",
+  ctxNetWorthTotal: "- Net worth: {amount}",
+  ctxNetWorthAssetsTop: "- Top assets: {list}",
+  ctxNetWorthLiabilitiesTop: "- Top liabilities: {list}",
+  ctxGoalsTotal: "- Total goal savings: {amount}",
+  ctxGoalsList: "- Savings goals: {list}",
+  savingsGoalsLabel: "Savings (Goals)",
+  savingsTotalLabel: "Total savings",
+  manageGoals: "Manage",
+  goalWalletHint:
+    "Note: a deposit does not automatically reduce wallet balances. Move the real money to a separate savings account so it is not counted twice in net worth.",
+  presetNetWorth: "Net Worth Tips",
+  promptNetWorth:
+    "Analyze my net worth (including goal savings and assets): is my asset vs liability position healthy, and give 3 concrete steps to improve it (e.g., reduce high-interest liabilities, increase liquid assets, keep up with savings goals). Answer briefly in English.",
 
   errSession: "Session not found.",
   errSessionLogin: "Session not found. Please sign in again.",
@@ -864,6 +931,23 @@ export const deDict: Dict = {
   addGoalFirst:
     "Beginnen Sie mit einem kleinen Ziel – z. B. Notgroschen oder Reise.",
   errGoalInvalid: "Ungültiges Sparziel.",
+  savingsCategoryLabel: "Sparen",
+  categoryKindLabel: "Kategorieart",
+  savingsCategoryHint:
+    "Transaktionen dieser Kategorie gelten nicht als Ausgaben — Geld wird auf Sparziele verschoben.",
+  goalLabel: "Sparziel (optional)",
+  selectGoalPlaceholder: "Sparziel wählen",
+  noGoal: "Kein Ziel",
+  errGoalInsufficient:
+    "Nicht genügend Guthaben im Sparziel für diese Abhebung.",
+  badgeSavings: "Sparen",
+  fromSavingsData: "Aus Sparzielen",
+  autoCategoryLabel: "Sparen-Kategorie erstellen",
+  savingsInLabel: "Zum Sparen",
+  savingsOutLabel: "Sparabhebung",
+  savingsFlowLabel: "Sparfluss",
+  ctxSavingsMonth:
+    "- Sparfluss diesen Monat: {in} eingezahlt, {out} abgehoben",
 
   navNetWorth: "Vermögen",
   netWorthPageDesc:
@@ -982,6 +1066,22 @@ export const deDict: Dict = {
   ctxRecent: "- Letzte Transaktionen: {list}",
   ctxTypeIncome: "Einnahme",
   ctxTypeExpense: "Ausgabe",
+  ctxNetWorthHeader: "Aktuelle Nettovermögensübersicht ({currency}):",
+  ctxNetWorthAssets: "- Gesamtvermögen: {amount}",
+  ctxNetWorthLiabilities: "- Gesamtverbindlichkeiten: {amount}",
+  ctxNetWorthTotal: "- Nettovermögen: {amount}",
+  ctxNetWorthAssetsTop: "- Größte Vermögenswerte: {list}",
+  ctxNetWorthLiabilitiesTop: "- Größte Verbindlichkeiten: {list}",
+  ctxGoalsTotal: "- Gesamtsumme Sparziele: {amount}",
+  ctxGoalsList: "- Sparziele: {list}",
+  savingsGoalsLabel: "Sparziele",
+  savingsTotalLabel: "Ersparnis gesamt",
+  manageGoals: "Verwalten",
+  goalWalletHint:
+    "Hinweis: Die Einzahlung reduziert das Wallet-Guthaben nicht automatisch. Bewegen Sie das Geld real auf ein separates Sparkonto, um eine doppelte Zählung im Nettovermögen zu vermeiden.",
+  presetNetWorth: "Nettovermögen-Tipps",
+  promptNetWorth:
+    "Analysieren Sie mein Nettovermögen (einschließlich Sparziele und Vermögenswerte): Ist mein Verhältnis von Vermögenswerten zu Verbindlichkeiten gesund, und geben Sie 3 konkrete Schritte zur Verbesserung (z. B. hochverzinsliche Verbindlichkeiten reduzieren, liquide Vermögenswerte erhöhen, Sparziele einhalten). Antworten Sie kurz auf Deutsch.",
 
   errSession: "Sitzung nicht gefunden.",
   errSessionLogin: "Sitzung nicht gefunden. Bitte melden Sie sich erneut an.",

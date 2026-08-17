@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/transactions";
 import { monthBounds } from "@/lib/formatting";
 import { formatMoney } from "@/lib/currencies";
+import { getNetWorthSummary } from "@/lib/db/net-worth";
 import { InsightPanel } from "@/components/insights/insight-panel";
 import { createTranslator, langCode } from "@/lib/i18n";
 import { redirect } from "next/navigation";
@@ -67,10 +68,11 @@ export default async function InsightsPage({
   const isCurrentMonth =
     `${nowP.year}-${nowP.month}` === month;
 
-  const [stats, byCat, recent] = await Promise.all([
+  const [stats, byCat, recent, netWorth] = await Promise.all([
     sumByType(user.user.id, mStart, mEnd),
     expenseByCategory(user.user.id, mStart, mEnd),
     listTransactions(user.user.id, { start: mStart, end: mEnd, limit: 8 }),
+    getNetWorthSummary(user.user.id),
   ]);
 
   const monthLabel = new Intl.DateTimeFormat(langCode(locale), {
@@ -81,6 +83,15 @@ export default async function InsightsPage({
 
   const typeLabel = (txType: string) =>
     t(txType === "INCOME" ? "ctxTypeIncome" : "ctxTypeExpense");
+
+  const topAssets = netWorth.assets
+    .slice()
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
+  const topLiabilities = netWorth.liabilities
+    .slice()
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
 
   const context = [
     t("ctxSummary", { currency }),
@@ -101,6 +112,47 @@ export default async function InsightsPage({
           )
           .join("; ") || "n/a",
     }),
+    t("ctxNetWorthHeader", { currency }),
+    t("ctxNetWorthAssets", {
+      amount: formatMoney(netWorth.totalAssets, currency, locale),
+    }),
+    t("ctxNetWorthLiabilities", {
+      amount: formatMoney(netWorth.totalLiabilities, currency, locale),
+    }),
+    t("ctxNetWorthTotal", {
+      amount: formatMoney(netWorth.netWorth, currency, locale),
+    }),
+    t("ctxNetWorthAssetsTop", {
+      list:
+        topAssets
+          .map((i) => `${i.name} (${formatMoney(i.value, currency, locale)})`)
+          .join(", ") || "n/a",
+    }),
+    t("ctxNetWorthLiabilitiesTop", {
+      list:
+        topLiabilities
+          .map((i) => `${i.name} (${formatMoney(i.value, currency, locale)})`)
+          .join(", ") || "n/a",
+    }),
+    t("ctxGoalsTotal", {
+      amount: formatMoney(netWorth.totalGoals, currency, locale),
+    }),
+    t("ctxGoalsList", {
+      list:
+        netWorth.goals
+          .slice()
+          .sort((a, b) => b.currentAmount - a.currentAmount)
+          .slice(0, 3)
+          .map(
+            (g) =>
+              `${g.name} (${formatMoney(g.currentAmount, currency, locale)} / ${formatMoney(g.targetAmount, currency, locale)})`
+          )
+          .join(", ") || "n/a",
+    }),
+    t("ctxSavingsMonth", {
+      in: formatMoney(stats.savingsIn, currency, locale),
+      out: formatMoney(stats.savingsOut, currency, locale),
+    }),
   ].join("\n");
 
   const presetPrompts = [
@@ -115,6 +167,10 @@ export default async function InsightsPage({
     {
       label: t("presetBudget"),
       prompt: t("promptBudget"),
+    },
+    {
+      label: t("presetNetWorth"),
+      prompt: t("promptNetWorth"),
     },
   ];
 

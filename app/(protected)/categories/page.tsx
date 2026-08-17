@@ -4,6 +4,7 @@ import { monthSpentByCategory } from "@/lib/db/transactions";
 import { monthBounds } from "@/lib/formatting";
 import { CategoryManager } from "@/components/categories/category-manager";
 import { createTranslator } from "@/lib/i18n";
+import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function CategoriesPage() {
@@ -16,9 +17,21 @@ export default async function CategoriesPage() {
   const timeZone = user.settings?.timeZone ?? "Asia/Jakarta";
   const { start: mStart, end: mEnd } = monthBounds(new Date(), timeZone);
 
-  const [categories, spentByCategory] = await Promise.all([
+  const [categories, spentByCategory, goals] = await Promise.all([
     ensureDefaultCategories(user.user.id),
     monthSpentByCategory(user.user.id, mStart, mEnd),
+    prisma.goal.findMany({
+      where: { userId: user.user.id },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        currentAmount: true,
+        targetAmount: true,
+        color: true,
+        icon: true,
+      },
+    }),
   ]);
 
   const currency = user.settings?.currency ?? "IDR";
@@ -37,6 +50,7 @@ export default async function CategoriesPage() {
         categories={categories}
         currency={currency}
         spentByCategory={spentByCategory}
+        goals={goals}
       />
     </div>
   );

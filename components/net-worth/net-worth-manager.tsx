@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Plus,
   Trash2,
@@ -12,6 +13,7 @@ import {
   Landmark,
   Wallet,
   CreditCard,
+  PiggyBank,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -24,7 +26,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -351,6 +353,82 @@ export function NetWorthManager({
           )}
         </CardContent>
       </Card>
+
+      {/* Tabungan (Tujuan) */}
+      {summary.goals.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm">
+                {t("savingsGoalsLabel")} ({summary.goals.length})
+              </CardTitle>
+              <Link
+                href="/goals"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                <PiggyBank className="mr-1.5 h-4 w-4" />
+                {t("manageGoals")}
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {summary.goals.map((g) => {
+              const pct =
+                g.targetAmount > 0
+                  ? Math.min(100, (g.currentAmount / g.targetAmount) * 100)
+                  : 0;
+              return (
+                <div key={g.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                        style={{
+                          backgroundColor: `${g.color ?? "#454745"}22`,
+                          color: g.color ?? "var(--foreground)",
+                        }}
+                      >
+                        <PiggyBank className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 truncate text-sm font-medium">
+                        {g.name}
+                      </span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="text-sm font-medium tabular-nums">
+                        {formatMoney(g.currentAmount, currency, locale)}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {t("goalProgress", {
+                          current: formatMoney(g.currentAmount, currency, locale),
+                          target: formatMoney(g.targetAmount, currency, locale),
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: g.color ?? "var(--positive)",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="flex items-center justify-between border-t pt-2 text-sm">
+              <span className="text-muted-foreground">
+                {t("savingsTotalLabel")}
+              </span>
+              <span className="font-medium tabular-nums">
+                {formatMoney(summary.totalGoals, currency, locale)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Kewajiban */}
       <Card>

@@ -28,7 +28,7 @@ const POOLSIDE_MODEL = process.env.POOLSIDE_MODEL || "poolside/laguna-s-2.1";
 
 const SYSTEM_PROMPT = [
   "Anda adalah FinansialKit AI, asisten perencanaan keuangan pribadi yang cerdas dan ramah.",
-  "Anda HANYA membahas topik keuangan pribadi pengguna berdasarkan data transaksi yang diberikan: pola pengeluaran, kategori, anggaran, saran hemat, ringkasan bulanan, dan perencanaan keuangan.",
+  "Anda HANYA membahas topik keuangan pribadi pengguna berdasarkan data transaksi yang diberikan: pola pengeluaran, kategori, anggaran, saran hemat, ringkasan bulanan, perencanaan keuangan, dan net worth (aset, kewajiban, kekayaan bersih).",
   "Jawab dalam Bahasa Indonesia, kecuali pengguna menulis dalam bahasa lain — gunakan bahasa yang sama dengan pengguna.",
   "Jika pertanyaan TIDAK berkaitan dengan keuangan pribadi (misalnya resep masakan, cuaca, kode program, pengetahuan umum, politik, hiburan, terjemahan, dll), JANGAN menjawab isi pertanyaan tersebut. Tolak dengan sopan dalam 1-2 kalimat dan arahkan kembali ke topik keuangan.",
   "Jika data tidak cukup untuk menjawab, akui keterbatasan itu dan sarankan tindakan yang bisa dilakukan dengan data yang ada.",
@@ -61,6 +61,8 @@ const FINANCIAL_KEYWORDS = [
   "income", "expense", "savings", "invest", "salary", "bill", "debt", "loan",
   "credit", "finance", "financial", "money", "spend", "spending", "cash",
   "wallet", "budget", "cost", "price", "pay", "payment", "monthly", "mortgage",
+  "net worth", "kekayaan", "aset", "liabilitas", "kewajiban", "asset",
+  "liability", "vermoegen", "vermögen",
 ] as const;
 
 export function isFinancialQuestion(prompt: string): boolean {
