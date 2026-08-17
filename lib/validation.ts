@@ -12,6 +12,7 @@ export const TransactionSchema = z.object({
   categoryId: z.string().optional(),
   description: z.string().max(500).optional(),
   method: PaymentMethodSchema.optional(),
+  accountId: z.string().optional(),
 });
 
 export const CategorySchema = z.object({
@@ -37,6 +38,61 @@ export const UserSettingsSchema = z.object({
   currency: z.string().length(3),
   dateFormat: z.string().min(1),
   timeZone: z.string().min(1),
+});
+
+export const WalletSchema = z.object({
+  name: z.string().min(1, "Nama akun wajib diisi").max(50),
+  type: z.enum(["CASH", "BANK", "E_WALLET", "CARD"]),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+});
+
+export const TransferSchema = z.object({
+  fromAccountId: z.string().min(1, "Akun asal wajib dipilih"),
+  toAccountId: z.string().min(1, "Akun tujuan wajib dipilih"),
+  amount: z.coerce
+    .number({ error: "Jumlah harus angka" })
+    .positive("Jumlah harus lebih besar dari 0"),
+  date: z.string().min(1, "Tanggal wajib diisi"),
+  description: z.string().max(500).optional(),
+});
+
+export const RecurringFrequencySchema = z.enum([
+  "DAILY",
+  "WEEKLY",
+  "MONTHLY",
+  "YEARLY",
+]);
+
+export const RecurringSchema = z.object({
+  description: z.string().min(1, "Deskripsi wajib diisi").max(500),
+  amount: z.coerce
+    .number({ error: "Jumlah harus angka" })
+    .positive("Jumlah harus lebih besar dari 0"),
+  type: TransactionTypeSchema,
+  frequency: RecurringFrequencySchema,
+  categoryId: z.string().optional(),
+  method: PaymentMethodSchema.optional(),
+  accountId: z.string().optional(),
+  startDate: z.string().min(1, "Tanggal wajib diisi"),
+});
+
+export const GoalSchema = z.object({
+  name: z.string().min(1, "Nama tujuan wajib diisi").max(50),
+  targetAmount: z.coerce
+    .number({ error: "Target harus angka" })
+    .positive("Target harus lebih besar dari 0"),
+  deadline: z.string().optional(),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+});
+
+export const GoalAdjustSchema = z.object({
+  id: z.string().min(1),
+  amount: z.coerce
+    .number({ error: "Jumlah harus angka" })
+    .positive("Jumlah harus lebih besar dari 0"),
+  direction: z.enum(["DEPOSIT", "WITHDRAW"]),
 });
 
 export type TransactionInput = z.infer<typeof TransactionSchema>;

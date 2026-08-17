@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePicker, MoneyInput } from "@/components/ui/date-picker";
+import { DatePicker } from "@/components/ui/date-picker";
+import { MoneyInput } from "@/components/ui/money-input";
 import {
   createTransactionAction,
   updateTransactionAction,
@@ -37,6 +38,7 @@ export function TransactionDialog({
   categories,
   currency,
   locale,
+  wallets,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -45,6 +47,7 @@ export function TransactionDialog({
   categories: Category[];
   currency: string;
   locale: string;
+  wallets: { id: string; name: string }[];
 }) {
   const { t } = useI18n();
   const [date, setDate] = useState<Date | null>(
@@ -57,6 +60,9 @@ export function TransactionDialog({
     transaction?.categoryId ?? ""
   );
   const [method, setMethod] = useState<string>(transaction?.method ?? "");
+  const [account, setAccount] = useState<string>(
+    transaction?.accountId ?? ""
+  );
   const [desc, setDesc] = useState(transaction?.description ?? "");
 
   useEffect(() => {
@@ -67,17 +73,19 @@ export function TransactionDialog({
         setType("EXPENSE");
         setCategory("");
         setMethod("");
+        setAccount(wallets.length === 1 ? wallets[0].id : "");
         setDesc("");
       } else {
         setDate(transaction ? new Date(transaction.date) : new Date());
         setType((transaction?.type as "INCOME" | "EXPENSE") ?? "EXPENSE");
         setCategory(transaction?.categoryId ?? "");
         setMethod(transaction?.method ?? "");
+        setAccount(transaction?.accountId ?? "");
         setDesc(transaction?.description ?? "");
       }
     }, 0);
     return () => clearTimeout(t);
-  }, [open, mode, transaction]);
+  }, [open, mode, transaction, wallets]);
 
   const action =
     mode === "edit" ? updateTransactionAction : createTransactionAction;
@@ -87,7 +95,7 @@ export function TransactionDialog({
     if (!state?.success) return;
     const t = setTimeout(() => onOpenChange(false), 0);
     return () => clearTimeout(t);
-  }, [state?.success, onOpenChange]);
+  }, [state, onOpenChange]);
 
   const typeOptions: Array<{ value: "INCOME" | "EXPENSE"; label: string }> = [
     { value: "INCOME", label: t("income") },
@@ -228,6 +236,39 @@ export function TransactionDialog({
               </Select>
               <input type="hidden" name="method" value={method} />
             </div>
+
+            {wallets.length > 0 && (
+              <div className="space-y-1">
+                <Label>{t("accountLabel")}</Label>
+                <Select
+                  value={account}
+                  onValueChange={(v: string | null) => setAccount(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: t("noAccount") },
+                    ...wallets.map((w) => ({
+                      value: w.id,
+                      label: w.name,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("selectAccountPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label={t("noAccount")}>
+                      {t("noAccount")}
+                    </SelectItem>
+                    {wallets.map((w) => (
+                      <SelectItem value={w.id} key={w.id} label={w.name}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="accountId" value={account} />
+              </div>
+            )}
 
             <div className="space-y-1">
               <Label htmlFor="tx-desc">{t("notesLabel")}</Label>

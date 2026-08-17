@@ -1,24 +1,21 @@
 import { getCurrentUser } from "@/lib/session";
 import { ensureDefaultCategories } from "@/lib/db/categories";
 import { ensureDefaultWallet, listWallets } from "@/lib/db/wallets";
-import { listTransactions } from "@/lib/db/transactions";
-import { processDueRecurring } from "@/lib/db/recurring";
-import { TransactionManager } from "@/components/transactions/transaction-manager";
+import { listRecurring } from "@/lib/db/recurring";
+import { RecurringManager } from "@/components/recurring/recurring-manager";
 import { createTranslator } from "@/lib/i18n";
 import { redirect } from "next/navigation";
 
-export default async function TransactionsPage() {
+export default async function RecurringPage() {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/sign-in?callbackUrl=/transactions");
+    redirect("/sign-in?callbackUrl=/recurring");
   }
 
-  const [categories, transactions, wallets] = await Promise.all([
+  const [categories, wallets, recurring] = await Promise.all([
     ensureDefaultCategories(user.user.id),
-    listTransactions(user.user.id),
     ensureDefaultWallet(user.user.id).then(() => listWallets(user.user.id)),
-    // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
-    processDueRecurring(user.user.id),
+    listRecurring(user.user.id),
   ]);
 
   const currency = user.settings?.currency ?? "IDR";
@@ -30,19 +27,19 @@ export default async function TransactionsPage() {
   return (
     <div className="space-y-6 p-4 sm:p-6">
       <div>
-        <h1 className="text-display-sm font-display">{t("navTransactions")}</h1>
+        <h1 className="text-display-sm font-display">{t("navRecurring")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("txPageDesc")}
+          {t("recurringPageDesc")}
         </p>
       </div>
-      <TransactionManager
-        transactions={transactions}
+      <RecurringManager
+        recurring={recurring}
         categories={categories}
+        wallets={wallets.map((w) => ({ id: w.id, name: w.name }))}
         currency={currency}
         dateFormat={dateFormat}
         timeZone={timeZone}
         locale={locale}
-        wallets={wallets.map((w) => ({ id: w.id, name: w.name }))}
       />
     </div>
   );

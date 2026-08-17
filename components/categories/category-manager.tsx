@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Tags, Pencil } from "lucide-react";
+import { Plus, Trash2, Tags, Pencil, Pipette } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { minorToMajor } from "@/lib/currencies";
 import { formatMoney } from "@/lib/currencies";
+import { MoneyInput, useMoneyMask } from "@/components/ui/money-input";
 import {
   createCategoryAction,
   deleteCategoryAction,
@@ -83,7 +83,7 @@ export function CategoryManager({
       router.refresh();
     }, 0);
     return () => clearTimeout(to);
-  }, [state?.success, router]);
+  }, [state, router]);
 
   const grouped = (() => {
     const income = categories.filter((c) => c.type === "INCOME");
@@ -127,6 +127,7 @@ export function CategoryManager({
         state={state}
         isPending={isPending}
         action={action}
+        currency={currency}
       />
 
       {/* Edit category dialog */}
@@ -199,12 +200,14 @@ function AddCategoryDialog({
   state,
   isPending,
   action,
+  currency,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   state: { error?: string; success?: boolean } | null;
   isPending: boolean;
   action: (formData: FormData) => void;
+  currency: string;
 }) {
   const { t } = useI18n();
   const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
@@ -234,19 +237,12 @@ function AddCategoryDialog({
             <TypeField value={type} onChange={setType} />
 
             {type === "EXPENSE" && (
-              <div className="space-y-1">
-                <Label htmlFor="cat-budget">
-                  {t("budgetLabel")}
-                </Label>
-                <Input
-                  id="cat-budget"
-                  name="budget"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  placeholder={t("budgetPlaceholder")}
-                />
-              </div>
+              <MoneyInput
+                name="budget"
+                label={t("budgetLabel")}
+                currency={currency}
+                placeholder={t("budgetPlaceholder")}
+              />
             )}
 
             <IconField />
@@ -295,7 +291,7 @@ function CategoryEditDialog({
       router.refresh();
     }, 0);
     return () => clearTimeout(to);
-  }, [state?.success, onClose, router]);
+  }, [state, onClose, router]);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -407,34 +403,50 @@ function IconField({ defaultValue = "Plus" }: { defaultValue?: string }) {
 function ColorField({ defaultValue = COLOR_OPTIONS[0] }: { defaultValue?: string }) {
   const { t } = useI18n();
   const [color, setColor] = useState(defaultValue);
+  const isPreset = COLOR_OPTIONS.includes(color);
+
   return (
     <div className="space-y-1">
       <Label>{t("colorLabel")}</Label>
-      <div className="flex items-center gap-2">
-        <Select
-          value={color}
-          onValueChange={(v: string | null) => setColor(v ?? "")}
-          items={COLOR_OPTIONS.map((c) => ({ value: c, label: c }))}
+      <div className="flex flex-wrap items-center gap-2">
+        {COLOR_OPTIONS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setColor(c)}
+            aria-label={c}
+            title={c}
+            className={
+              "h-7 w-7 rounded-full transition-transform " +
+              (color === c
+                ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                : "hover:scale-110")
+            }
+            style={{ backgroundColor: c }}
+          />
+        ))}
+        <button
+          type="button"
+          aria-label={t("customColor")}
+          title={t("customColor")}
+          className={
+            "relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full ring-1 ring-border transition-transform hover:scale-110 focus-within:ring-2 focus-within:ring-primary " +
+            (!isPreset
+              ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+              : "")
+          }
+          style={{ backgroundColor: color }}
         >
-          <SelectTrigger className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {COLOR_OPTIONS.map((c) => (
-              <SelectItem value={c} key={c} label={c}>
-                <span className="flex items-center gap-2">
-                  <span
-                    className="h-4 w-4 rounded-full"
-                    style={{ backgroundColor: c }}
-                  />
-                  {c}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <input type="hidden" name="color" value={color} />
+          <Pipette className="pointer-events-none h-3.5 w-3.5 text-white mix-blend-exclusion" />
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </button>
       </div>
+      <input type="hidden" name="color" value={color} />
     </div>
   );
 }
@@ -458,34 +470,31 @@ function BudgetInput({
   currency: string;
   onBudget: (cat: Category, value: string) => void;
 }) {
-  const { t } = useI18n();
-  const [value, setValue] = useState(
-    cat.budget == null ? "" : String(minorToMajor(cat.budget, currency))
-  );
-  const prevValue = useRef(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (prevValue.current === value) return;
-    prevValue.current = value;
-    const to = setTimeout(() => onBudget(cat, value), 800);
-    return () => clearTimeout(to);
-  }, [value, cat, onBudget]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const { inputProps } = useMoneyMask({
+    defaultValue:
+      cat.budget == null ? "" : String(minorToMajor(cat.budget, currency)),
+    currency,
+    onChangeRaw: (v) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => onBudget(cat, v), 800);
+    },
+  });
 
   return (
-    <>
-      <Label htmlFor={`budget-${cat.id}`} className="sr-only">
-        {t("budgetSrOnly")}
-      </Label>
-      <Input
-        id={`budget-${cat.id}`}
-        type="number"
-        min={0}
-        className="w-28"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="0"
-      />
-    </>
+    <Input
+      id={`budget-${cat.id}`}
+      className="w-28"
+      placeholder="0"
+      {...inputProps}
+    />
   );
 }
 
@@ -540,17 +549,14 @@ function CategoryGroup({
               className="rounded-xl border px-3 py-2 transition-colors hover:border-primary/50 hover:bg-muted/30"
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="h-3 w-3 rounded-full"
+                    className="h-3 w-3 shrink-0 rounded-full"
                     style={{ backgroundColor: cat.color ?? "var(--muted-foreground)" }}
                   />
-                  <span className="font-medium">{cat.name}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {cat.type === "INCOME" ? t("catIncomeShort") : t("catExpenseShort")}
-                  </Badge>
+                  <span className="truncate font-medium">{cat.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -559,9 +565,6 @@ function CategoryGroup({
                     <Pencil className="h-4 w-4" />
                     <span className="sr-only">{t("edit")}</span>
                   </Button>
-                  {cat.type === "EXPENSE" && (
-                    <BudgetInput cat={cat} currency={currency} onBudget={onBudget} />
-                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -573,6 +576,22 @@ function CategoryGroup({
                   </Button>
                 </div>
               </div>
+
+              {cat.type === "EXPENSE" && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <Label
+                    htmlFor={`budget-${cat.id}`}
+                    className="text-xs font-normal text-muted-foreground"
+                  >
+                    {t("budgetLabel")}
+                  </Label>
+                  <BudgetInput
+                    cat={cat}
+                    currency={currency}
+                    onBudget={onBudget}
+                  />
+                </div>
+              )}
 
               {hasBudget && (
                 <div className="mt-2 space-y-1">

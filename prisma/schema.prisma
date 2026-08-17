@@ -27,6 +27,10 @@ model User {
   sessions    Session[]
   accounts    Account[]
   settings    UserSettings?
+  wallets     Wallet[]
+  transfers   Transfer[]
+  recurringTransactions RecurringTransaction[]
+  goals       Goal[]
 }
 
 model Session {
@@ -98,6 +102,7 @@ model Category {
   sortOrder     Int           @default(100)
   userId        String
   transactions  Transaction[]
+  recurring     RecurringTransaction[]
   @@unique([userId, slug])
   @@index([userId, type])
   @@map("category")
@@ -112,11 +117,17 @@ model Transaction {
   method      PaymentMethod?
   categoryId  String?
   category    Category?        @relation(fields: [categoryId], references: [id])
+  accountId   String?
+  account     Wallet?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  recurringId String?
+  recurring   RecurringTransaction? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
   userId      String
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   @@index([userId, date, type])
   @@index([categoryId])
+  @@index([accountId])
+  @@unique([recurringId, date])
   @@map("transaction")
 }
 
@@ -130,4 +141,103 @@ enum PaymentMethod {
   BANK
   E_WALLET
   CARD
+}
+
+// ── Akun (rekening/dompet) aplikasi — jangan tertukar dengan model
+// Account milik better-auth (tabel "account"). Saldo TIDAK disimpan:
+// dihitung dinamis dari transaksi + transfer.
+enum WalletType {
+  CASH
+  BANK
+  E_WALLET
+  CARD
+}
+
+model Wallet {
+  id           String        @id @default(cuid())
+  name         String
+  type         WalletType
+  icon         String?
+  color        String?
+  isDefault    Boolean       @default(false)
+  sortOrder    Int           @default(100)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  recurringTransactions RecurringTransaction[]
+  transfersFrom Transfer[]   @relation("TransferFrom")
+  transfersTo   Transfer[]   @relation("TransferTo")
+  @@index([userId])
+  @@map("wallet")
+}
+
+// Transfer antar akun — tidak mengubah total kekayaan, hanya saldo per akun.
+model Transfer {
+  id            String   @id @default(cuid())
+  fromAccountId String
+  fromAccount   Wallet   @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Restrict)
+  toAccountId   String
+  toAccount     Wallet   @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Restrict)
+  amount        Int      // minor unit
+  date          DateTime @db.Date
+  description   String?
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  @@index([userId, date])
+  @@index([fromAccountId])
+  @@index([toAccountId])
+  @@map("transfer")
+}
+
+// ── Transaksi berulang ──────────────────────────────────
+// Menghasilkan transaksi nyata saat jatuh tempo (lihat lib/db/recurring.ts).
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model RecurringTransaction {
+  id          String              @id @default(cuid())
+  description String
+  amount      Int                 // minor unit
+  type        TransactionType
+  frequency   RecurringFrequency
+  method      PaymentMethod?
+  categoryId  String?
+  category    Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId   String?
+  account     Wallet?             @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  startDate   DateTime            @db.Date
+  nextRunDate DateTime            @db.Date
+  lastRunDate DateTime?
+  isActive    Boolean             @default(true)
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  transactions Transaction[]
+  @@index([userId, isActive])
+  @@map("recurring_transaction")
+}
+
+// ── Tujuan tabungan ─────────────────────────────────────
+// Progres dilacak manual via setor/tarik (bukan otomatis dari transaksi).
+model Goal {
+  id            String    @id @default(cuid())
+  name          String
+  targetAmount  Int       // minor unit
+  currentAmount Int       @default(0)
+  deadline      DateTime? @db.Date
+  color         String?
+  icon          String?
+  sortOrder     Int       @default(100)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  @@index([userId])
+  @@map("goal")
 }

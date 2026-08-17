@@ -12,8 +12,16 @@ import {
   ArrowDown,
   ChevronLeft,
   ChevronRight,
+  Download,
+  ChevronDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -41,14 +49,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TransactionDialog } from "@/components/transactions/transaction-dialog";
 import { deleteTransactionAction } from "@/app/actions/transactions";
-import { formatDate } from "@/lib/formatting";
+import { formatDate, monthBounds } from "@/lib/formatting";
 import { formatMoney, formatNumber } from "@/lib/currencies";
 import { useI18n } from "@/lib/i18n/client";
+import { cn } from "@/lib/utils";
 import type { DictKey } from "@/lib/i18n/dictionaries";
 import type { Category } from "@/lib/generated/prisma/client";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
 
-type SortKey = "date" | "description" | "category" | "method" | "amount";
+type SortKey = "date" | "description" | "category" | "method" | "account" | "amount";
 type SortDir = "asc" | "desc";
 
 
@@ -59,6 +68,7 @@ export function TransactionManager({
   dateFormat,
   timeZone,
   locale,
+  wallets,
 }: {
   transactions: TransactionWithCategory[];
   categories: Category[];
@@ -66,6 +76,7 @@ export function TransactionManager({
   dateFormat: string;
   timeZone: string;
   locale: string;
+  wallets: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -74,6 +85,7 @@ export function TransactionManager({
   const [deleteTx, setDeleteTx] = useState<TransactionWithCategory | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [activeType, setActiveType] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [accountFilter, setAccountFilter] = useState("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -92,6 +104,9 @@ export function TransactionManager({
     if (activeType !== "ALL") {
       list = list.filter((t) => t.type === activeType);
     }
+    if (accountFilter) {
+      list = list.filter((t) => t.accountId === accountFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -101,7 +116,7 @@ export function TransactionManager({
       );
     }
     return list;
-  }, [transactions, activeType, search]);
+  }, [transactions, activeType, accountFilter, search]);
 
   const sorted = useMemo(() => {
     const factor = sortDir === "asc" ? 1 : -1;
@@ -126,6 +141,13 @@ export function TransactionManager({
         case "method":
           return (
             (a.method ?? "").localeCompare(b.method ?? "", "id") * factor
+          );
+        case "account":
+          return (
+            (a.account?.name ?? "").localeCompare(
+              b.account?.name ?? "",
+              "id"
+            ) * factor
           );
         default:
           return 0;
@@ -181,8 +203,8 @@ export function TransactionManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           {(["ALL", "INCOME", "EXPENSE"] as const).map((type) => (
             <Button
               key={type}
@@ -197,8 +219,35 @@ export function TransactionManager({
             </Button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-48">
+        <div className="flex flex-wrap items-center gap-2">
+          {wallets.length > 0 && (
+            <Select
+              value={accountFilter}
+              onValueChange={(v: string | null) => {
+                setAccountFilter(v ?? "");
+                setPage(1);
+              }}
+              items={[
+                { value: "", label: t("filterAccount") },
+                ...wallets.map((w) => ({ value: w.id, label: w.name })),
+              ]}
+            >
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder={t("filterAccount")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="" label={t("filterAccount")}>
+                  {t("filterAccount")}
+                </SelectItem>
+                {wallets.map((w) => (
+                  <SelectItem value={w.id} key={w.id} label={w.name}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <div className="relative w-full min-w-40 sm:w-48 sm:flex-none">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t("search")}
@@ -210,6 +259,44 @@ export function TransactionManager({
               className="pl-8"
             />
           </div>
+          <div className="flex items-center">
+            <Button
+              variant="outline"
+              className="rounded-r-none border-r-0"
+              onClick={() => downloadCsv(exportUrl("all", timeZone))}
+            >
+              <Download />
+              {t("exportCsv")}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={t("exportOptions")}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "w-9 rounded-l-none border-l-0 px-0"
+                )}
+              >
+                <ChevronDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => downloadCsv(exportUrl("all", timeZone))}
+                >
+                  {t("exportPeriodAll")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => downloadCsv(exportUrl("month", timeZone))}
+                >
+                  {t("exportPeriodMonth")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => downloadCsv(exportUrl("six", timeZone))}
+                >
+                  {t("exportPeriodSixMonths")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             {t("add")}
@@ -217,7 +304,7 @@ export function TransactionManager({
         </div>
       </div>
 
-      <div className="flex gap-6 text-sm">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
         <span>
           {t("income")}:{" "}
           <span className="font-medium text-positive">
@@ -238,139 +325,230 @@ export function TransactionManager({
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <SortableHead
-                label={t("colDate")}
-                sortKey="date"
-                activeKey={sortKey}
-                dir={sortDir}
-                onSort={handleSort}
-              />
-              <SortableHead
-                label={t("colDescription")}
-                sortKey="description"
-                activeKey={sortKey}
-                dir={sortDir}
-                onSort={handleSort}
-              />
-              <SortableHead
-                label={t("colCategory")}
-                sortKey="category"
-                activeKey={sortKey}
-                dir={sortDir}
-                onSort={handleSort}
-              />
-              <SortableHead
-                label={t("colMethod")}
-                sortKey="method"
-                activeKey={sortKey}
-                dir={sortDir}
-                onSort={handleSort}
-              />
-              <SortableHead
-                label={t("colAmount")}
-                sortKey="amount"
-                activeKey={sortKey}
-                dir={sortDir}
-                onSort={handleSort}
-                className="text-right"
-              />
-              <TableHead className="text-center">{t("colActions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-40 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Search className="h-8 w-8 text-muted-foreground/40" />
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {transactions.length === 0
-                          ? t("noTransactionsYet")
-                          : t("noResults")}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl bg-card py-14 text-center ring-1 ring-border">
+          <Search className="h-8 w-8 text-muted-foreground/40" />
+          <div>
+            <p className="font-medium text-foreground">
+              {transactions.length === 0 ? t("noTransactionsYet") : t("noResults")}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {transactions.length === 0 ? t("startTracking") : t("tryChangingFilters")}
+            </p>
+          </div>
+          {transactions.length === 0 && (
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("addFirstTransaction")}
+            </Button>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Kartu (mobile) */}
+          <div className="space-y-2 sm:hidden">
+            {paged.map((tx) => {
+              const cat = tx.categoryId ? catMap[tx.categoryId] : null;
+              const isIncome = tx.type === "INCOME";
+              return (
+                <div
+                  key={tx.id}
+                  className="rounded-xl border bg-card p-3 transition-colors hover:border-primary/50"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    {cat && (
+                      <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="truncate">{cat.name}</span>
                       </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {transactions.length === 0
-                          ? t("startTracking")
-                          : t("tryChangingFilters")}
-                      </p>
-                    </div>
-                    {transactions.length === 0 && (
-                      <Button size="sm" onClick={() => setAddOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        {t("addFirstTransaction")}
-                      </Button>
+                    )}
+                    {!cat && <span />}
+                    {tx.method && (
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 px-1.5 py-0 text-[10px]"
+                      >
+                        {methodLabel(t, tx.method)}
+                      </Badge>
                     )}
                   </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paged.map((tx) => {
-                const cat = tx.categoryId ? catMap[tx.categoryId] : null;
-                const isIncome = tx.type === "INCOME";
-                return (
-                  <TableRow key={tx.id} className="transition-colors hover:bg-muted/50">
-                    <TableCell>{formatDate(tx.date, dateFormat, timeZone, locale)}</TableCell>
-                    <TableCell>{tx.description ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell>
-                      {cat ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: cat.color }}
-                          />
-                          {cat.name}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {tx.method ? (
-                        <Badge variant="outline">{methodLabel(t, tx.method)}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell
+                  <p className="mt-0.5 min-w-0 truncate font-medium">
+                    {tx.description ?? (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatDate(tx.date, dateFormat, timeZone, locale)}
+                    {tx.account ? ` · ${tx.account.name}` : ""}
+                  </p>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div
                       className={
-                        "text-right font-semibold tabular-nums " +
+                        "min-w-0 truncate text-base font-semibold tabular-nums " +
                         (isIncome ? "text-positive" : "text-destructive")
                       }
                     >
                       {isIncome ? "+ " : "- "}
                       {formatMoney(tx.amount, currency, locale)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditTx(tx)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          onClick={() => setDeleteTx(tx)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("edit")}
+                        onClick={() => setEditTx(tx)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        aria-label={t("delete")}
+                        onClick={() => setDeleteTx(tx)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Tabel (sm ke atas) */}
+          <div className="hidden overflow-hidden rounded-xl bg-card ring-1 ring-border sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableHead
+                    label={t("colDate")}
+                    sortKey="date"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label={t("colDescription")}
+                    sortKey="description"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label={t("colCategory")}
+                    sortKey="category"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label={t("colMethod")}
+                    sortKey="method"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label={t("colAccount")}
+                    sortKey="account"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                  <SortableHead
+                    label={t("colAmount")}
+                    sortKey="amount"
+                    activeKey={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                    className="text-right"
+                  />
+                  <TableHead className="text-center">{t("colActions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paged.map((tx) => {
+                  const cat = tx.categoryId ? catMap[tx.categoryId] : null;
+                  const isIncome = tx.type === "INCOME";
+                  return (
+                    <TableRow key={tx.id} className="transition-colors hover:bg-muted/50">
+                      <TableCell>{formatDate(tx.date, dateFormat, timeZone, locale)}</TableCell>
+                      <TableCell>{tx.description ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                      <TableCell>
+                        {cat ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: cat.color }}
+                            />
+                            {cat.name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {tx.method ? (
+                          <Badge variant="outline">{methodLabel(t, tx.method)}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {tx.account ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: tx.account.color ?? "var(--muted-foreground)" }}
+                            />
+                            {tx.account.name}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className={
+                          "text-right font-semibold tabular-nums " +
+                          (isIncome ? "text-positive" : "text-destructive")
+                        }
+                      >
+                        {isIncome ? "+ " : "- "}
+                        {formatMoney(tx.amount, currency, locale)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t("edit")}
+                            onClick={() => setEditTx(tx)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            aria-label={t("delete")}
+                            onClick={() => setDeleteTx(tx)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       {/* Pagination */}
       {filtered.length > 0 && (
@@ -460,6 +638,7 @@ export function TransactionManager({
         categories={categories}
         currency={currency}
         locale={locale}
+        wallets={wallets}
       />
 
       {/* Edit dialog */}
@@ -472,6 +651,7 @@ export function TransactionManager({
           categories={categories}
           currency={currency}
           locale={locale}
+          wallets={wallets}
         />
       )}
 
@@ -516,6 +696,35 @@ export function TransactionManager({
       </AlertDialog>
     </div>
   );
+}
+
+function downloadCsv(url: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function exportUrl(period: "all" | "month" | "six", timeZone: string): string {
+  const p = new URLSearchParams();
+  if (period === "month") {
+    const b = monthBounds(new Date(), timeZone);
+    p.set("start", toISODate(b.start));
+    p.set("end", toISODate(b.end));
+  } else if (period === "six") {
+    const now = new Date();
+    const b = monthBounds(
+      new Date(now.getFullYear(), now.getMonth() - 5, 1),
+      timeZone
+    );
+    p.set("start", toISODate(b.start));
+  }
+  return `/api/export?${p.toString()}`;
 }
 
 function methodLabel(

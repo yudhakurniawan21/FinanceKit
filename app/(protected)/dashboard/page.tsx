@@ -6,6 +6,9 @@ import {
   listTransactions,
   budgetRemaining,
 } from "@/lib/db/transactions";
+import { processDueRecurring } from "@/lib/db/recurring";
+import { listWallets } from "@/lib/db/wallets";
+import { listGoals } from "@/lib/db/goals";
 import { monthBounds, formatDate } from "@/lib/formatting";
 import DashboardView from "@/components/dashboard/dashboard-view";
 import { redirect } from "next/navigation";
@@ -24,13 +27,21 @@ export default async function DashboardPage() {
   const { start: mStart, end: mEnd } = monthBounds(now, timeZone);
   const todayLabel = formatDate(now, dateFormat, timeZone, locale);
 
-  const [monthly, byCat, recent, stats, budget] = await Promise.all([
-    monthlyTotals(user.user.id, 6, timeZone),
-    expenseByCategory(user.user.id, mStart, mEnd),
-    listTransactions(user.user.id, { limit: 5 }),
-    sumByType(user.user.id, mStart, mEnd),
-    budgetRemaining(user.user.id, mStart, mEnd),
-  ]);
+  const [monthly, byCat, recent, stats, budget, wallets, goals] =
+    await Promise.all([
+      monthlyTotals(user.user.id, 6, timeZone),
+      expenseByCategory(user.user.id, mStart, mEnd),
+      listTransactions(user.user.id, { limit: 5 }),
+      sumByType(user.user.id, mStart, mEnd),
+      budgetRemaining(user.user.id, mStart, mEnd),
+      listWallets(user.user.id),
+      listGoals(user.user.id),
+      // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
+      processDueRecurring(user.user.id),
+    ]);
+
+  const totalBalance = wallets.reduce((acc, w) => acc + w.balance, 0);
+  const totalSaved = goals.reduce((acc, g) => acc + g.currentAmount, 0);
 
   return (
     <DashboardView
@@ -38,10 +49,14 @@ export default async function DashboardPage() {
       todayLabel={todayLabel}
       income={stats.income}
       expense={stats.expense}
+      totalBalance={totalBalance}
+      totalSaved={totalSaved}
       budget={budget}
       monthly={monthly}
       byCategory={byCat}
       recent={recent}
+      wallets={wallets}
+      goals={goals}
     />
   );
 }

@@ -24,8 +24,17 @@ import {
 import { formatMoney } from "@/lib/currencies";
 import { useI18n } from "@/lib/i18n/client";
 import { langCode } from "@/lib/i18n";
-import { TrendingUp, TrendingDown, Wallet, CalendarDays } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  CalendarDays,
+  PiggyBank,
+  Landmark,
+} from "lucide-react";
 import type { TransactionWithCategory } from "@/lib/db/transactions";
+import type { WalletWithBalance } from "@/lib/db/wallets";
+import type { Goal } from "@/lib/generated/prisma/client";
 
 const CHART_COLORS = {
   income: "var(--positive)",
@@ -40,19 +49,27 @@ export default function DashboardView({
   todayLabel,
   income,
   expense,
+  totalBalance,
+  totalSaved,
   budget,
   monthly,
   byCategory,
   recent,
+  wallets,
+  goals,
 }: {
   currency: string;
   todayLabel: string;
   income: number;
   expense: number;
+  totalBalance: number;
+  totalSaved: number;
   budget: { totalBudget: number; spent: number; remaining: number };
   monthly: MonthlyPt[];
   byCategory: CatAgg[];
   recent: TransactionWithCategory[];
+  wallets: WalletWithBalance[];
+  goals: Goal[];
 }) {
   const { t, locale } = useI18n();
   return (
@@ -65,6 +82,12 @@ export default function DashboardView({
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
+          icon={<Wallet className="h-4 w-4 text-primary" />}
+          label={t("statBalance")}
+          value={formatMoney(totalBalance, currency, locale)}
+          sub={`${wallets.length} ${t("accountsLabel").toLowerCase()}`}
+        />
+        <StatCard
           icon={<TrendingUp className="h-4 w-4 text-positive" />}
           label={t("statIncome")}
           value={formatMoney(income, currency, locale)}
@@ -76,12 +99,6 @@ export default function DashboardView({
           value={formatMoney(expense, currency, locale)}
           sub={currency}
         />
-        <StatCard
-          icon={<Wallet className="h-4 w-4" />}
-          label={t("statNet")}
-          value={formatMoney(income - expense, currency, locale)}
-          sub={currency}
-        />
         <BudgetCard
           budget={budget}
           currency={currency}
@@ -89,9 +106,9 @@ export default function DashboardView({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* Line chart: monthly totals */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>{t("trendTitle")}</CardTitle>
             <CardDescription>{t("trendDesc")}</CardDescription>
@@ -107,6 +124,16 @@ export default function DashboardView({
           </CardContent>
         </Card>
 
+        {/* Goals progress */}
+        <GoalsCard
+          goals={goals}
+          totalSaved={totalSaved}
+          currency={currency}
+          locale={locale}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* Pie: expense by category */}
         <Card>
           <CardHeader>
@@ -125,35 +152,90 @@ export default function DashboardView({
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Recent transactions */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>{t("recentTitle")}</CardTitle>
-            <CardDescription>
-              {t("recentDesc")}
-            </CardDescription>
-          </div>
-          <Link href="/transactions" className="text-sm font-medium underline">
-            {t("seeAll")}
-          </Link>
-        </CardHeader>
-        <CardContent>
-          {recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {t("noTransactions")}{" "}
-              <Link href="/transactions" className="underline">
-                {t("addNow")}
-              </Link>
-              .
-            </p>
-          ) : (
-            <RecentList items={recent} currency={currency} locale={locale} />
-          )}
-        </CardContent>
-      </Card>
+        {/* Account balances */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{t("accountsCardTitle")}</CardTitle>
+              <CardDescription>{t("accountsCardDesc")}</CardDescription>
+            </div>
+            <Link href="/accounts" className="text-sm font-medium underline">
+              {t("seeAll")}
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {wallets.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("noAccounts")}</p>
+            ) : (
+              <div className="space-y-2">
+                {wallets.map((w) => (
+                  <div
+                    key={w.id}
+                    className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            w.color ?? "var(--muted-foreground)",
+                        }}
+                      />
+                      <span className="text-sm font-medium">{w.name}</span>
+                    </span>
+                    <span
+                      className={
+                        "text-sm font-semibold tabular-nums " +
+                        (w.balance < 0 ? "text-destructive" : "")
+                      }
+                    >
+                      {formatMoney(w.balance, currency, locale)}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between border-t pt-2 text-sm">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Landmark className="h-4 w-4" />
+                    {t("statBalance")}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {formatMoney(totalBalance, currency, locale)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent transactions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>{t("recentTitle")}</CardTitle>
+              <CardDescription>
+                {t("recentDesc")}
+              </CardDescription>
+            </div>
+            <Link href="/transactions" className="text-sm font-medium underline">
+              {t("seeAll")}
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {recent.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("noTransactions")}{" "}
+                <Link href="/transactions" className="underline">
+                  {t("addNow")}
+                </Link>
+                .
+              </p>
+            ) : (
+              <RecentList items={recent} currency={currency} locale={locale} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -253,6 +335,92 @@ function BudgetCard({
             style={{ width: `${pct}%` }}
           />
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function GoalsCard({
+  goals,
+  totalSaved,
+  currency,
+  locale,
+}: {
+  goals: Goal[];
+  totalSaved: number;
+  currency: string;
+  locale: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>{t("goalsCardTitle")}</CardTitle>
+          <CardDescription>{t("goalsCardDesc")}</CardDescription>
+        </div>
+        <Link href="/goals" className="text-sm font-medium underline">
+          {t("seeAll")}
+        </Link>
+      </CardHeader>
+      <CardContent>
+        {goals.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <PiggyBank className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">
+              {t("noGoalsYet")}{" "}
+              <Link href="/goals" className="underline">
+                {t("addNow")}
+              </Link>
+              .
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-muted-foreground">
+                {t("totalSavedLabel")}
+              </span>
+              <span className="text-lg font-bold">
+                {formatMoney(totalSaved, currency, locale)}
+              </span>
+            </div>
+            {goals.slice(0, 4).map((goal) => {
+              const pct =
+                goal.targetAmount > 0
+                  ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)
+                  : 0;
+              return (
+                <div key={goal.id}>
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            goal.color ?? "var(--muted-foreground)",
+                        }}
+                      />
+                      <span className="truncate">{goal.name}</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {pct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={
+                        "h-full rounded-full " +
+                        (pct >= 100 ? "bg-positive" : "bg-primary")
+                      }
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -416,29 +584,36 @@ function RecentList({
         return (
           <div
             key={tx.id}
-            className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
+            className="rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
           >
-            <div className="flex items-center gap-2">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: tx.category?.color ?? "var(--muted-foreground)",
-                }}
-              />
-              <span className="text-sm">{tx.description ?? t("noDescription")}</span>
-              <span className="text-xs text-muted-foreground">
-                {tx.category?.name ?? "—"}
-              </span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor:
+                      tx.category?.color ?? "var(--muted-foreground)",
+                  }}
+                />
+                <span className="truncate text-sm">
+                  {tx.description ?? t("noDescription")}
+                </span>
+              </div>
+              <div
+                className={
+                  "shrink-0 text-sm font-medium tabular-nums " +
+                  (isIncome ? "text-positive" : "text-destructive")
+                }
+              >
+                {isIncome ? "+ " : "- "}
+                {formatMoney(tx.amount, currency, locale)}
+              </div>
             </div>
-            <div
-              className={
-                "text-sm font-medium " +
-                (isIncome ? "text-positive" : "text-destructive")
-              }
-            >
-              {isIncome ? "+ " : "- "}
-              {formatMoney(tx.amount, currency, locale)}
-            </div>
+            {tx.category && (
+              <p className="mt-0.5 pl-4 text-xs text-muted-foreground">
+                {tx.category.name}
+              </p>
+            )}
           </div>
         );
       })}

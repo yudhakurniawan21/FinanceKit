@@ -5,8 +5,11 @@ import {
   LayoutDashboard,
   ReceiptText,
   Tags,
-  Settings,
   BarChart3,
+  Wallet,
+  RefreshCcw,
+  PiggyBank,
+  FileChartColumn,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/client";
 import type { DictKey } from "@/lib/i18n/dictionaries";
@@ -14,7 +17,14 @@ import type { DictKey } from "@/lib/i18n/dictionaries";
 const nav: Array<{
   label: Extract<
     DictKey,
-    "navDashboard" | "navTransactions" | "navCategories" | "navInsights" | "navSettings"
+    | "navDashboard"
+    | "navTransactions"
+    | "navCategories"
+    | "navAccounts"
+    | "navRecurring"
+    | "navGoals"
+    | "navReports"
+    | "navInsights"
   >;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -23,8 +33,11 @@ const nav: Array<{
   { label: "navDashboard", href: "/dashboard", icon: LayoutDashboard, match: "/dashboard" },
   { label: "navTransactions", href: "/transactions", icon: ReceiptText, match: "/transactions" },
   { label: "navCategories", href: "/categories", icon: Tags, match: "/categories" },
+  { label: "navAccounts", href: "/accounts", icon: Wallet, match: "/accounts" },
+  { label: "navRecurring", href: "/recurring", icon: RefreshCcw, match: "/recurring" },
+  { label: "navGoals", href: "/goals", icon: PiggyBank, match: "/goals" },
+  { label: "navReports", href: "/reports", icon: FileChartColumn, match: "/reports" },
   { label: "navInsights", href: "/insights", icon: BarChart3, match: "/insights" },
-  { label: "navSettings", href: "/settings", icon: Settings, match: "/settings" },
 ];
 
 export function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {

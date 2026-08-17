@@ -7,6 +7,7 @@ import { monthBounds } from "@/lib/formatting";
 
 export interface TransactionWithCategory extends Transaction {
   category: { name: string; color: string | null; icon: string | null } | null;
+  account: { id: string; name: string; color: string | null } | null;
 }
 
 export async function listTransactions(
@@ -29,7 +30,10 @@ export async function listTransactions(
       ...(params.type ? { type: params.type } : {}),
       ...(params.categoryId ? { categoryId: params.categoryId } : {}),
     },
-    include: { category: { select: { name: true, color: true, icon: true } } },
+    include: {
+      category: { select: { name: true, color: true, icon: true } },
+      account: { select: { id: true, name: true, color: true } },
+    },
     orderBy: { date: "desc" },
     take: params.limit,
   });
@@ -192,4 +196,75 @@ export async function sumByType(
     rows.find((r) => r.type === "EXPENSE")?._sum?.amount ?? 0
   );
   return { income, expense };
+}
+
+// Agregat per kategori (expense ATAU income) + budget kategori utk laporan.
+export async function categoryTotals(
+  userId: string,
+  start: Date,
+  end: Date,
+  type: TransactionType
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    color: string | null;
+    amount: number;
+    budget: number | null;
+  }>
+> {
+  const groups = await prisma.transaction.groupBy({
+    by: ["categoryId"],
+    where: {
+      userId,
+      type,
+      date: { gte: start, lte: end },
+      categoryId: { not: null },
+    },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: "desc" } },
+  });
+  const ids = groups.map((g) => g.categoryId!).filter(Boolean);
+  if (ids.length === 0) return [];
+  const cats = await prisma.category.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, color: true, budget: true },
+  });
+  const byId = new Map(cats.map((c) => [c.id, c]));
+  return groups
+    .map((g) => {
+      const cat = g.categoryId ? byId.get(g.categoryId) : null;
+      if (!cat) return null;
+      return {
+        id: cat.id,
+        name: cat.name,
+        color: cat.color,
+        amount: Number(g._sum.amount ?? 0),
+        budget: cat.budget,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+}
+
+// Pengeluaran per hari (minor unit), utk bar chart laporan bulanan.
+export async function dailyTotals(
+  userId: string,
+  start: Date,
+  end: Date
+): Promise<Array<{ date: Date; amount: number }>> {
+  const rows = await prisma.transaction.findMany({
+    where: { userId, type: "EXPENSE", date: { gte: start, lte: end } },
+    select: { date: true, amount: true },
+  });
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const key = r.date.toISOString().slice(0, 10);
+    map.set(key, (map.get(key) ?? 0) + r.amount);
+  }
+  return [...map.entries()]
+    .map(([key, amount]) => ({
+      date: new Date(`${key}T00:00:00Z`),
+      amount,
+    }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 }

@@ -28,6 +28,11 @@ export async function createTransactionAction(
     if (!owned) return { error: translate(locale, "errCategoryInvalid") };
   }
 
+  if (v.accountId) {
+    const owned = await walletBelongsToUser(v.accountId, session.user.id);
+    if (!owned) return { error: translate(locale, "errWalletInvalid") };
+  }
+
   const currency = await resolveCurrency(session.user.id);
   const amountMinor = majorToMinor(v.amount, currency);
 
@@ -40,11 +45,13 @@ export async function createTransactionAction(
       method: (v.method as PaymentMethod) ?? null,
       description: v.description ?? null,
       categoryId: v.categoryId ?? null,
+      accountId: v.accountId ?? null,
     },
   });
 
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath("/accounts");
   return { success: true };
 }
 
@@ -69,6 +76,11 @@ export async function updateTransactionAction(
     if (!owned) return { error: translate(locale, "errCategoryInvalid") };
   }
 
+  if (v.accountId) {
+    const owned = await walletBelongsToUser(v.accountId, session.user.id);
+    if (!owned) return { error: translate(locale, "errWalletInvalid") };
+  }
+
   const currency = await resolveCurrency(session.user.id);
   const amountMinor = majorToMinor(v.amount, currency);
 
@@ -81,11 +93,13 @@ export async function updateTransactionAction(
       method: (v.method as PaymentMethod) ?? null,
       description: v.description ?? null,
       categoryId: v.categoryId ?? null,
+      accountId: v.accountId ?? null,
     },
   });
 
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath("/accounts");
   return { success: true };
 }
 
@@ -97,6 +111,7 @@ export async function deleteTransactionAction(
   await prisma.transaction.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath("/accounts");
   return { success: true };
 }
 
@@ -126,4 +141,16 @@ async function categoryBelongsToUser(
     select: { id: true },
   });
   return cat !== null;
+}
+
+// Pastikan akun benar-benar milik pengguna.
+async function walletBelongsToUser(
+  walletId: string,
+  userId: string
+): Promise<boolean> {
+  const w = await prisma.wallet.findFirst({
+    where: { id: walletId, userId },
+    select: { id: true },
+  });
+  return w !== null;
 }
