@@ -7,9 +7,16 @@ Aplikasi pencatatan keuangan pribadi (mobile-first) dengan AI insights. Catat tr
 - **Autentikasi Google** (BetterAuth) — login sekali klik, sesi aman
 - **Transaksi** — tambah/edit/hapus, pencarian, filter jenis, kolom sortable, pagination
 - **Kategori & Anggaran** — kategori pemasukan/pengeluaran dengan ikon & warna, anggaran bulanan per kategori (autosave debounce)
-- **Dashboard** — kartu ringkasan bulanan, tren 6 bulan, pengeluaran per kategori, transaksi terbaru
+- **Akun & Transfer** — kelola dompet/rekening, transfer antar akun
+- **Net Worth** — pantau total aset, liabilitas, dan nilai bersih; kontribusi tabungan (termasuk dana darurat)
+- **Tabungan Goals** — target dengan deadline & setoran bulanan yang disarankan; bisa ditandai sebagai **dana darurat**
+- **Transaksi Berulang** — jadwal otomatis (harian/mingguan/bulanan) dengan pembuatan transaksi idempoten + daftar jatuh tempo
+- **Financial Health** — skor kesehatan keuangan 0–100 dari 6 metrik (dana darurat, rasio tabungan, rasio utang, disiplin anggaran, arus kas, progres goals) + action items
+- **Dashboard** — kartu ringkasan bulanan, skor kesehatan, tren 6 bulan, pengeluaran per kategori, transaksi terbaru
+- **Laporan Bulanan** — ringkasan pemasukan/pengeluaran/net, perbandingan bulan sebelumnya, rincian per kategori & harian
 - **AI Insights** — ringkasan bulanan, saran hemat, dan cek anggaran via Poolside (streaming)
 - **Multi-mata uang** — 10 mata uang (IDR, USD, EUR, GBP, JPY, dll.) dengan minor-unit integer (bebas bug float)
+- **Multi-bahasa (i18n)** — Indonesia, English (US/UK), Deutsch; format tanggal & zona waktu
 - **Preferensi** — mata uang, bahasa, format tanggal, zona waktu; dark mode
 - **Desain Wise-inspired** — Tailwind v4 + shadcn (Base UI), responsif mobile-first
 
@@ -74,14 +81,19 @@ npm run dev              # buka http://localhost:3000
 
 ```
 app/
-  (protected)/        # Halaman ber-otentikasi (dashboard, transaksi, dst.)
-  actions/            # Server actions (transaksi, kategori, pengaturan)
+  (protected)/        # Halaman ber-otentikasi (dashboard, transaksi, akun, dst.)
+  actions/            # Server actions (transaksi, kategori, goals, pengaturan)
   api/                # Route handlers (auth, health, insights AI)
   page.tsx            # Landing page
 components/
+  accounts/           # Manajemen akun & transfer
   categories/         # Manajemen kategori & anggaran
-  dashboard/          # Ringkasan, chart Recharts
+  dashboard/          # Ringkasan, skor kesehatan, chart Recharts
+  goals/              # Tabungan goals & dana darurat
   insights/           # Panel AI streaming
+  net-worth/          # Aset, liabilitas, nilai bersih
+  recurring/          # Transaksi berulang
+  reports/            # Laporan bulanan
   transactions/       # Tabel, dialog, pagination
   layout/             # Shell, sidebar, theme toggle
   ui/                 # Komponen shadcn (Base UI)
@@ -90,6 +102,8 @@ lib/
   ai.ts               # Klien Poolside (lazy init)
   auth.ts             # Konfigurasi BetterAuth
   currencies.ts       # Mata uang & konversi minor-unit
+  financial-health.ts # Skor kesehatan keuangan & action items
+  i18n/               # Kamus terjemahan & helper
   validation.ts       # Skema Zod
 prisma/schema.prisma  # Skema database
 ```
