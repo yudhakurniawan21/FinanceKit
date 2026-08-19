@@ -40,6 +40,7 @@ export function TransactionDialog({
   locale,
   wallets,
   goals,
+  liabilities,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,6 +51,7 @@ export function TransactionDialog({
   locale: string;
   wallets: { id: string; name: string }[];
   goals: { id: string; name: string; currentAmount: number; targetAmount: number }[];
+  liabilities: { id: string; name: string }[];
 }) {
   const { t } = useI18n();
   const [date, setDate] = useState<Date | null>(
@@ -67,6 +69,7 @@ export function TransactionDialog({
     transaction?.accountId ?? ""
   );
   const [desc, setDesc] = useState(transaction?.description ?? "");
+  const [debt, setDebt] = useState<string>(transaction?.netWorthItemId ?? "");
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +82,7 @@ export function TransactionDialog({
         setMethod("");
         setAccount(wallets.length === 1 ? wallets[0].id : "");
         setDesc("");
+        setDebt("");
       } else {
         setDate(transaction ? new Date(transaction.date) : new Date());
         setType((transaction?.type as "INCOME" | "EXPENSE") ?? "EXPENSE");
@@ -87,6 +91,7 @@ export function TransactionDialog({
         setMethod(transaction?.method ?? "");
         setAccount(transaction?.accountId ?? "");
         setDesc(transaction?.description ?? "");
+        setDebt(transaction?.netWorthItemId ?? "");
       }
     }, 0);
     return () => clearTimeout(t);
@@ -281,6 +286,43 @@ export function TransactionDialog({
                   </SelectContent>
                 </Select>
                 <input type="hidden" name="accountId" value={account} />
+              </Field>
+            )}
+
+            {type === "EXPENSE" && liabilities.length > 0 && (
+              <Field label={t("txDebtLabel")}>
+                <Select
+                  value={debt}
+                  onValueChange={(v: string | null) => setDebt(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: t("noDebt") },
+                    ...liabilities.map((l) => ({
+                      value: l.id,
+                      label: l.name,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectDebtPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label={t("noDebt")}>
+                      {t("noDebt")}
+                    </SelectItem>
+                    {liabilities.map((l) => (
+                      <SelectItem value={l.id} key={l.id} label={l.name}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="netWorthItemId" value={debt} />
+                {debt && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("txDebtHint")}
+                  </p>
+                )}
               </Field>
             )}
 

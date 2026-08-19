@@ -16,7 +16,7 @@ export default async function TransactionsPage() {
 
   const LIMIT = 500;
 
-  const [categories, transactions, wallets, goals, totalCount] = await Promise.all([
+  const [categories, transactions, wallets, goals, liabilities, totalCount] = await Promise.all([
     ensureDefaultCategories(user.user.id),
     listTransactions(user.user.id, { limit: LIMIT }),
     ensureDefaultWallet(user.user.id).then(() => listWallets(user.user.id)),
@@ -29,6 +29,11 @@ export default async function TransactionsPage() {
         currentAmount: true,
         targetAmount: true,
       },
+    }),
+    prisma.netWorthItem.findMany({
+      where: { userId: user.user.id, type: "LIABILITY" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
     }),
     // Lazy: generate transaksi berulang yang jatuh tempo sebelum data dibaca.
     processDueRecurring(user.user.id).then(() =>
@@ -59,6 +64,7 @@ export default async function TransactionsPage() {
         locale={locale}
         wallets={wallets.map((w) => ({ id: w.id, name: w.name }))}
         goals={goals}
+        liabilities={liabilities}
         totalCount={totalCount}
       />
     </div>

@@ -35,7 +35,15 @@ import {
 import { formatMoney, minorToMajor } from "@/lib/currencies";
 import { formatDate } from "@/lib/formatting";
 import { useI18n } from "@/lib/i18n/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Goal } from "@/lib/generated/prisma/client";
+import type { WalletWithBalance } from "@/lib/db/wallets";
 
 const COLOR_OPTIONS = [
   "#9fe870",
@@ -54,12 +62,14 @@ export function GoalManager({
   dateFormat,
   timeZone,
   locale,
+  wallets,
 }: {
   goals: Goal[];
   currency: string;
   dateFormat: string;
   timeZone: string;
   locale: string;
+  wallets: WalletWithBalance[];
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -265,6 +275,7 @@ export function GoalManager({
           goal={adjustGoal}
           onClose={() => setAdjustGoal(null)}
           currency={currency}
+          wallets={wallets}
         />
       )}
 
@@ -493,13 +504,19 @@ function AdjustDialog({
   goal,
   onClose,
   currency,
+  wallets,
 }: {
   goal: Goal;
   onClose: () => void;
   currency: string;
+  wallets: WalletWithBalance[];
 }) {
   const { t, locale } = useI18n();
   const [direction, setDirection] = useState<"DEPOSIT" | "WITHDRAW">("DEPOSIT");
+  const [linked, setLinked] = useState(wallets.length > 0);
+  const [accountId, setAccountId] = useState<string>(
+    wallets.length === 1 ? wallets[0].id : ""
+  );
   const [state, boundAction, isPending] = useActionState(
     adjustGoalAmountAction,
     null
@@ -560,18 +577,101 @@ function AdjustDialog({
               disabled={isPending}
             />
 
+            <div>
+              <Field label={t("linkModeLabel")}>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLinked(true)}
+                    className={
+                      "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
+                      (linked
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input text-muted-foreground")
+                    }
+                  >
+                    {t("goalLinkMode")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLinked(false)}
+                    className={
+                      "flex-1 rounded-md border px-3 py-2 text-sm font-medium " +
+                      (!linked
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input text-muted-foreground")
+                    }
+                  >
+                    {t("goalManualMode")}
+                  </button>
+                </div>
+              </Field>
+              <input type="hidden" name="linked" value={linked ? "on" : "off"} />
+            </div>
+
+            {linked && wallets.length > 0 && (
+              <Field
+                label={
+                  direction === "DEPOSIT"
+                    ? t("goalSourceAccount")
+                    : t("goalTargetAccount")
+                }
+              >
+                <Select
+                  value={accountId}
+                  onValueChange={(v: string | null) => setAccountId(v ?? "")}
+                  disabled={isPending}
+                  items={wallets.map((w) => ({
+                    value: w.id,
+                    label: `${w.name} — ${formatMoney(w.balance, currency, locale)}`,
+                  }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectAccountPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((w) => (
+                      <SelectItem value={w.id} key={w.id} label={w.name}>
+                        <span className="flex w-full items-center justify-between gap-3">
+                          {w.name}
+                          <span className="text-xs text-muted-foreground">
+                            {formatMoney(w.balance, currency, locale)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="accountId" value={accountId} />
+                {accountId && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("accountBalanceHint", {
+                      amount: formatMoney(
+                        wallets.find((w) => w.id === accountId)?.balance ?? 0,
+                        currency,
+                        locale
+                      ),
+                    })}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("goalLinkHint")}
+                </p>
+              </Field>
+            )}
+
+            {!linked && (
+              <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {t("goalManualHint")}
+              </p>
+            )}
+
             <p className="text-xs text-muted-foreground">
               {t("goalProgress", {
                 current: formatMoney(goal.currentAmount, currency, locale),
                 target: formatMoney(goal.targetAmount, currency, locale),
               })}
             </p>
-
-            {direction === "DEPOSIT" && (
-              <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                {t("goalWalletHint")}
-              </p>
-            )}
 
             {state?.error && (
               <p className="text-sm text-destructive">{state.error}</p>

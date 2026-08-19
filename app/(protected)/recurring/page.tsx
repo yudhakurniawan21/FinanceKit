@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/session";
 import { ensureDefaultCategories } from "@/lib/db/categories";
 import { ensureDefaultWallet, listWallets } from "@/lib/db/wallets";
 import { listRecurring } from "@/lib/db/recurring";
+import prisma from "@/lib/prisma";
 import { RecurringManager } from "@/components/recurring/recurring-manager";
 import { createTranslator } from "@/lib/i18n";
 import { redirect } from "next/navigation";
@@ -12,10 +13,15 @@ export default async function RecurringPage() {
     redirect("/sign-in?callbackUrl=/recurring");
   }
 
-  const [categories, wallets, recurring] = await Promise.all([
+  const [categories, wallets, recurring, liabilities] = await Promise.all([
     ensureDefaultCategories(user.user.id),
     ensureDefaultWallet(user.user.id).then(() => listWallets(user.user.id)),
     listRecurring(user.user.id),
+    prisma.netWorthItem.findMany({
+      where: { userId: user.user.id, type: "LIABILITY" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
   ]);
 
   const currency = user.settings?.currency ?? "IDR";
@@ -36,6 +42,7 @@ export default async function RecurringPage() {
         recurring={recurring}
         categories={categories}
         wallets={wallets.map((w) => ({ id: w.id, name: w.name }))}
+        liabilities={liabilities}
         currency={currency}
         dateFormat={dateFormat}
         timeZone={timeZone}

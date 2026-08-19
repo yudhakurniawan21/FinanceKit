@@ -34,6 +34,9 @@ export async function createRecurringAction(
   if (v.accountId && !(await owned("wallet", v.accountId, session.user.id))) {
     return { error: translate(locale, "errWalletInvalid") };
   }
+  if (v.netWorthItemId && !(await owned("liability", v.netWorthItemId, session.user.id))) {
+    return { error: translate(locale, "errDebtInvalid") };
+  }
 
   const currency = await resolveCurrency(session.user.id);
   const amountMinor = majorToMinor(v.amount, currency);
@@ -49,6 +52,7 @@ export async function createRecurringAction(
       method: (v.method as PaymentMethod) ?? null,
       categoryId: v.categoryId ?? null,
       accountId: v.accountId ?? null,
+      netWorthItemId: v.netWorthItemId ?? null,
       startDate,
       nextRunDate: startDate,
     },
@@ -81,12 +85,14 @@ export async function updateRecurringAction(
   if (v.accountId && !(await owned("wallet", v.accountId, session.user.id))) {
     return { error: translate(locale, "errWalletInvalid") };
   }
+  if (v.netWorthItemId && !(await owned("liability", v.netWorthItemId, session.user.id))) {
+    return { error: translate(locale, "errDebtInvalid") };
+  }
 
   const currency = await resolveCurrency(session.user.id);
   const amountMinor = majorToMinor(v.amount, currency);
   const startDate = new Date(v.startDate);
 
-  // Kalau startDate berubah → jadwal berikutnya dihitung ulang dari awal.
   const existing = await prisma.recurringTransaction.findFirst({
     where: { id, userId: session.user.id },
     select: { startDate: true },
@@ -105,6 +111,7 @@ export async function updateRecurringAction(
       method: (v.method as PaymentMethod) ?? null,
       categoryId: v.categoryId ?? null,
       accountId: v.accountId ?? null,
+      netWorthItemId: v.netWorthItemId ?? null,
       startDate,
       ...(resetSchedule ? { nextRunDate: startDate } : {}),
     },
@@ -151,18 +158,25 @@ export async function processRecurringNowAction(): Promise<{
   revalidatePath("/recurring");
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
+  revalidatePath("/goals");
+  revalidatePath("/net-worth");
   return { success: true, created };
 }
 
 async function owned(
-  model: "category" | "wallet",
+  model: "category" | "wallet" | "liability",
   id: string,
   userId: string
 ): Promise<boolean> {
   const row =
     model === "category"
       ? await prisma.category.findFirst({ where: { id, userId }, select: { id: true } })
-      : await prisma.wallet.findFirst({ where: { id, userId }, select: { id: true } });
+      : model === "wallet"
+        ? await prisma.wallet.findFirst({ where: { id, userId }, select: { id: true } })
+        : await prisma.netWorthItem.findFirst({
+            where: { id, userId, type: "LIABILITY" },
+            select: { id: true },
+          });
   return row !== null;
 }
 

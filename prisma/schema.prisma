@@ -102,6 +102,7 @@ model Category {
   color         String?
   budget        Int?          // cents, monthly budget for this category
   isSavings     Boolean       @default(false) // tabungan: bukan pengeluaran konsumtif
+  budgetTier    BudgetTier?   // klasifikasi 50/30/20 (NEEDS/WANTS/SAVINGS)
   goalId        String?       // tautan ke tujuan tabungan (opsional)
   goal          Goal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
   sortOrder     Int           @default(100)
@@ -127,6 +128,8 @@ model Transaction {
   account     Wallet?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
   goalId      String?          // tujuan tabungan (opsional) saat kategori tabungan
   goal        Goal?            @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  netWorthItemId String?       // kewajiban utang yang dibayar (opsional)
+  netWorthItem   NetWorthItem? @relation(fields: [netWorthItemId], references: [id], onDelete: SetNull)
   recurringId String?
   recurring   RecurringTransaction? @relation(fields: [recurringId], references: [id], onDelete: SetNull)
   userId      String
@@ -136,6 +139,7 @@ model Transaction {
   @@index([categoryId])
   @@index([accountId])
   @@index([goalId])
+  @@index([netWorthItemId])
   @@unique([recurringId, date])
   @@map("transaction")
 }
@@ -150,6 +154,14 @@ enum PaymentMethod {
   BANK
   E_WALLET
   CARD
+}
+
+// Klasifikasi anggaran 50/30/20: Kebutuhan pokok, Keinginan, Tabungan/Investasi.
+// Dipakai oleh Smart Budget Allocator & skor kesehatan keuangan.
+enum BudgetTier {
+  NEEDS
+  WANTS
+  SAVINGS
 }
 
 // ── Akun (rekening/dompet) aplikasi — jangan tertukar dengan model
@@ -209,27 +221,30 @@ enum RecurringFrequency {
 }
 
 model RecurringTransaction {
-  id          String              @id @default(cuid())
-  description String
-  amount      Int                 // minor unit
-  type        TransactionType
-  frequency   RecurringFrequency
-  method      PaymentMethod?
-  categoryId  String?
-  category    Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  accountId   String?
-  account     Wallet?             @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  startDate   DateTime            @db.Date
-  nextRunDate DateTime            @db.Date
-  lastRunDate DateTime?
-  isActive    Boolean             @default(true)
-  userId      String
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  transactions Transaction[]
+  id             String              @id @default(cuid())
+  description    String
+  amount         Int                 // minor unit
+  type           TransactionType
+  frequency      RecurringFrequency
+  method         PaymentMethod?
+  categoryId     String?
+  category       Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  accountId      String?
+  account        Wallet?             @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  netWorthItemId String?             // kewajiban utang yang dibayar (opsional)
+  netWorthItem   NetWorthItem?       @relation(fields: [netWorthItemId], references: [id], onDelete: SetNull)
+  startDate      DateTime            @db.Date
+  nextRunDate    DateTime            @db.Date
+  lastRunDate    DateTime?
+  isActive       Boolean             @default(true)
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  transactions   Transaction[]
   @@index([userId, isActive])
   @@index([isActive, nextRunDate])
+  @@index([netWorthItemId])
   @@map("recurring_transaction")
 }
 
@@ -264,18 +279,34 @@ enum NetWorthType {
   LIABILITY
 }
 
+// Sub-tipe utang/kewajiban — untuk diagnosis finansial (produktif vs
+// konsumtif) dan integrasi Debt Payoff Planner.
+enum DebtType {
+  CREDIT_CARD // Kartu Kredit
+  PAYLATER // Paylater / Pinjol
+  MORTGAGE // KPR / Properti
+  VEHICLE // Kredit Kendaraan (KKB)
+  PERSONAL_LOAN // KTA / Pinjaman Pribadi / Lainnya
+}
+
 model NetWorthItem {
-  id        String       @id @default(cuid())
-  name      String
-  type      NetWorthType
-  value     Int          // minor unit — nilai saat ini (manual)
-  color     String?
-  icon      String?
-  sortOrder Int          @default(100)
-  userId    String
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id           String        @id @default(cuid())
+  name         String
+  type         NetWorthType
+  value        Int           // minor unit — sisa pokok utang / nilai aset
+  debtType     DebtType?     // sub-kategori kewajiban (LIABILITY)
+  interestRate Float?        // suku bunga tahunan (% p.a., misal 18.5)
+  minPayment   Int?          // cicilan bulanan minimum (minor unit)
+  dueDay       Int?          // tanggal jatuh tempo bulanan (1-31)
+  color        String?
+  icon         String?
+  sortOrder    Int           @default(100)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[] // riwayat pembayaran cicilan
+  recurringTransactions RecurringTransaction[] // jadwal cicilan berulang
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   @@index([userId])
   @@map("net_worth_item")
 }

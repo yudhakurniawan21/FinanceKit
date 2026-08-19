@@ -41,6 +41,13 @@ export async function createTransactionAction(
     if (!owned) return { error: translate(locale, "errGoalInvalid") };
   }
 
+  // Tautan ke kewajiban utang (EXPENSE hanya mengubijes pokok).
+  const netWorthItemId = v.type === "EXPENSE" ? (v.netWorthItemId ?? null) : null;
+  if (netWorthItemId) {
+    const owned = await debtBelongsToUser(netWorthItemId, session.user.id);
+    if (!owned) return { error: translate(locale, "errDebtInvalid") };
+  }
+
   if (v.accountId) {
     const owned = await walletBelongsToUser(v.accountId, session.user.id);
     if (!owned) return { error: translate(locale, "errWalletInvalid") };
@@ -54,6 +61,7 @@ export async function createTransactionAction(
     amountMinor,
     categoryIsSavings
   );
+  const debtDelta = debtEffect(v.type as TransactionType, amountMinor);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -77,6 +85,7 @@ export async function createTransactionAction(
           categoryId: v.categoryId ?? null,
           accountId: v.accountId ?? null,
           goalId,
+          netWorthItemId,
         },
       });
 
@@ -86,24 +95,19 @@ export async function createTransactionAction(
           data: { currentAmount: { increment: effect } },
         });
       }
+
+      if (netWorthItemId && debtDelta > 0) {
+        await tx.netWorthItem.update({
+          where: { id: netWorthItemId },
+          data: { value: { decrement: debtDelta } },
+        });
+      }
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "goal") {
-      return { error: translate(locale, "errGoalInvalid") };
-    }
-    if (err instanceof Error && err.message === "insufficient") {
-      return { error: translate(locale, "errGoalInsufficient") };
-    }
-    return { error: translate(locale, "errValidation") };
+    return catchErrors(err, locale);
   }
 
-  revalidatePath("/transactions");
-  revalidatePath("/dashboard");
-  revalidatePath("/accounts");
-  revalidatePath("/goals");
-  revalidatePath("/net-worth");
-  await recordNetWorthSnapshot(session.user.id);
-  return { success: true };
+  return revalidateAndSnapshot(session.user.id);
 }
 
 export async function updateTransactionAction(
@@ -163,6 +167,16 @@ export async function updateTransactionAction(
     categoryIsSavings
   );
 
+  const oldNetWorthItemId = old.type === "EXPENSE" ? old.netWorthItemId : null;
+  const oldDebtDelta = old.type === "EXPENSE" ? old.amount : 0;
+  const netWorthItemId = v.type === "EXPENSE" ? (v.netWorthItemId ?? null) : null;
+  const debtDelta = debtEffect(v.type as TransactionType, amountMinor);
+
+  if (netWorthItemId) {
+    const owned = await debtBelongsToUser(netWorthItemId, session.user.id);
+    if (!owned) return { error: translate(locale, "errDebtInvalid") };
+  }
+
   try {
     await prisma.$transaction(async (tx) => {
       if (old.goalId && oldEffect !== 0) {
@@ -185,6 +199,21 @@ export async function updateTransactionAction(
         });
       }
 
+      // Kembalikan pengurangan pokok utang pada transaksi lama.
+      if (oldNetWorthItemId && oldDebtDelta > 0) {
+        await tx.netWorthItem.update({
+          where: { id: oldNetWorthItemId },
+          data: { value: { increment: oldDebtDelta } },
+        });
+      }
+      // Terapkan pengurangan baru.
+      if (netWorthItemId && debtDelta > 0) {
+        await tx.netWorthItem.update({
+          where: { id: netWorthItemId },
+          data: { value: { decrement: debtDelta } },
+        });
+      }
+
       await tx.transaction.update({
         where: { id, userId: session.user.id },
         data: {
@@ -196,26 +225,15 @@ export async function updateTransactionAction(
           categoryId: v.categoryId ?? null,
           accountId: v.accountId ?? null,
           goalId,
+          netWorthItemId,
         },
       });
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "goal") {
-      return { error: translate(locale, "errGoalInvalid") };
-    }
-    if (err instanceof Error && err.message === "insufficient") {
-      return { error: translate(locale, "errGoalInsufficient") };
-    }
-    return { error: translate(locale, "errValidation") };
+    return catchErrors(err, locale);
   }
 
-  revalidatePath("/transactions");
-  revalidatePath("/dashboard");
-  revalidatePath("/accounts");
-  revalidatePath("/goals");
-  revalidatePath("/net-worth");
-  await recordNetWorthSnapshot(session.user.id);
-  return { success: true };
+  return revalidateAndSnapshot(session.user.id);
 }
 
 export async function deleteTransactionAction(
@@ -237,25 +255,27 @@ export async function deleteTransactionAction(
     old.category?.isSavings ?? false
   );
 
-  if (old.goalId && effect !== 0) {
-    await prisma.$transaction([
-      prisma.transaction.delete({ where: { id, userId: session.user.id } }),
-      prisma.goal.update({
+  // Kembalikan pokok utang jika transaksi adalah pembayaran cicilan.
+  const oldNetWorthItemId = old.type === "EXPENSE" ? old.netWorthItemId : null;
+  const oldDebtDelta = old.type === "EXPENSE" ? old.amount : 0;
+
+  await prisma.$transaction(async (tx) => {
+    if (old.goalId && effect !== 0) {
+      await tx.goal.update({
         where: { id: old.goalId },
         data: { currentAmount: { decrement: effect } },
-      }),
-    ]);
-  } else {
-    await prisma.transaction.delete({ where: { id, userId: session.user.id } });
-  }
+      });
+    }
+    if (oldNetWorthItemId && oldDebtDelta > 0) {
+      await tx.netWorthItem.update({
+        where: { id: oldNetWorthItemId },
+        data: { value: { increment: oldDebtDelta } },
+      });
+    }
+    await tx.transaction.delete({ where: { id, userId: session.user.id } });
+  });
 
-  revalidatePath("/transactions");
-  revalidatePath("/dashboard");
-  revalidatePath("/accounts");
-  revalidatePath("/goals");
-  revalidatePath("/net-worth");
-  await recordNetWorthSnapshot(session.user.id);
-  return { success: true };
+  return revalidateAndSnapshot(session.user.id);
 }
 
 // Efek transaksi terhadap goal tabungan (minor unit):
@@ -267,6 +287,52 @@ function savingsEffect(
 ): number {
   if (!categoryIsSavings) return 0;
   return type === "EXPENSE" ? amount : -amount;
+}
+
+// Pengurangan pokok utang (minor unit): hanya pembayaran EXPENSE mengurangi.
+function debtEffect(type: TransactionType, amount: number): number {
+  return type === "EXPENSE" ? amount : 0;
+}
+
+// Pastikan kewajiban benar-benar milik pengguna dan berjenis LIABILITY.
+async function debtBelongsToUser(
+  netWorthItemId: string,
+  userId: string
+): Promise<boolean> {
+  const d = await prisma.netWorthItem.findFirst({
+    where: { id: netWorthItemId, userId, type: "LIABILITY" },
+    select: { id: true },
+  });
+  return d !== null;
+}
+
+function catchErrors(
+  err: unknown,
+  locale: string | null
+): { error?: string; success?: boolean } {
+  // Log error asli supaya bukan-FK/kesalahan DB lain tidak tersamarkan
+  // oleh pesan validasi generik.
+  console.error("[createTransactionAction]", err);
+  if (err instanceof Error && err.message === "goal") {
+    return { error: translate(locale, "errGoalInvalid") };
+  }
+  if (err instanceof Error && err.message === "insufficient") {
+    return { error: translate(locale, "errGoalInsufficient") };
+  }
+  return { error: translate(locale, "errValidation") };
+}
+
+function revalidateAndSnapshot(userId: string): Promise<{
+  error?: string;
+  success?: boolean;
+}> {
+  revalidatePath("/transactions");
+  revalidatePath("/dashboard");
+  revalidatePath("/accounts");
+  revalidatePath("/goals");
+  revalidatePath("/net-worth");
+  revalidatePath("/tools");
+  return recordNetWorthSnapshot(userId).then(() => ({ success: true }));
 }
 
 async function resolveCurrency(userId: string): Promise<string> {

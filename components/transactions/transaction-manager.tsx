@@ -81,6 +81,7 @@ export function TransactionManager({
   locale,
   wallets,
   goals,
+  liabilities,
   totalCount,
 }: {
   transactions: TransactionWithCategory[];
@@ -96,6 +97,7 @@ export function TransactionManager({
     currentAmount: number;
     targetAmount: number;
   }[];
+  liabilities: { id: string; name: string }[];
   totalCount?: number;
 }) {
   const router = useRouter();
@@ -134,6 +136,7 @@ export function TransactionManager({
       method: recurringTx.method,
       categoryId: recurringTx.categoryId,
       accountId: recurringTx.accountId,
+      netWorthItemId: recurringTx.netWorthItemId,
       startDate: format(start, "yyyy-MM-dd"),
     };
   }, [recurringTx, currency, t]);
@@ -781,6 +784,7 @@ export function TransactionManager({
         locale={locale}
         wallets={wallets}
         goals={goals}
+        liabilities={liabilities}
       />
 
       {/* Edit dialog */}
@@ -795,6 +799,7 @@ export function TransactionManager({
           locale={locale}
           wallets={wallets}
           goals={goals}
+          liabilities={liabilities}
         />
       )}
 
@@ -807,6 +812,7 @@ export function TransactionManager({
           prefill={recurringPrefill}
           categories={categories}
           wallets={wallets}
+          liabilities={liabilities}
           currency={currency}
           locale={locale}
         />

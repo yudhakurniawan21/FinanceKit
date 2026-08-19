@@ -8,6 +8,9 @@ import { GoalSchema, GoalAdjustSchema } from "@/lib/validation";
 import { majorToMinor } from "@/lib/currencies";
 import { translate } from "@/lib/i18n";
 import { slugify } from "@/lib/db/categories";
+import { listWallets } from "@/lib/db/wallets";
+import { recordNetWorthSnapshot } from "@/lib/db/net-worth";
+import { TransactionType } from "@/lib/generated/prisma/client";
 
 export async function createGoalAction(
   _prev: { error?: string; success?: boolean } | null,
@@ -135,24 +138,85 @@ export async function adjustGoalAmountAction(
   const v = parsed.data;
 
   const currency = await resolveCurrency(session.user.id);
+  const amountMinor = majorToMinor(v.amount, currency);
   const deltaMinor =
-    (v.direction === "DEPOSIT" ? 1 : -1) * majorToMinor(v.amount, currency);
+    (v.direction === "DEPOSIT" ? 1 : -1) * amountMinor;
 
   const goal = await prisma.goal.findFirst({
     where: { id: v.id, userId: session.user.id },
-    select: { currentAmount: true },
+    select: {
+      currentAmount: true,
+      name: true,
+      categories: {
+        where: { isSavings: true },
+        select: { id: true },
+        take: 1,
+      },
+    },
   });
   if (!goal) return { error: translate(locale, "errGoalInvalid") };
 
   const next = Math.max(0, goal.currentAmount + deltaMinor);
-  await prisma.goal.update({
-    where: { id: v.id },
-    data: { currentAmount: next },
-  });
+  const categoryId = goal.categories[0]?.id ?? null;
+
+  // Jika mutasi rekening: pilihan akun wajib diisi.
+  const linked = v.linked && !!v.accountId;
+  if (v.linked && !v.accountId) {
+    return { error: translate(locale, "errAccountRequired") };
+  }
+
+  if (linked) {
+    const wallet = await prisma.wallet.findFirst({
+      where: { id: v.accountId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!wallet) return { error: translate(locale, "errWalletInvalid") };
+
+    // Setor (DEPOSIT) memotong saldo rekening — pastikan saldo mencukup.
+    if (v.direction === "DEPOSIT") {
+      const wallets = await listWallets(session.user.id);
+      const src = wallets.find((w) => w.id === v.accountId);
+      if (!src || src.balance < amountMinor) {
+        return { error: translate(locale, "errInsufficientBalance") };
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.create({
+        data: {
+          userId: session.user.id,
+          date: new Date(),
+          amount: amountMinor,
+          type:
+            v.direction === "DEPOSIT"
+              ? ("EXPENSE" as TransactionType)
+              : ("INCOME" as TransactionType),
+          method: null,
+          description: `${goal.name}`,
+          categoryId,
+          accountId: v.accountId,
+          goalId: v.id,
+        },
+      });
+      await tx.goal.update({
+        where: { id: v.id },
+        data: { currentAmount: Math.max(0, goal.currentAmount + deltaMinor) },
+      });
+    });
+  } else {
+    // Mode manual (tanpa mutasi rekening) — comportamento klasik.
+    await prisma.goal.update({
+      where: { id: v.id },
+      data: { currentAmount: next },
+    });
+  }
 
   revalidatePath("/goals");
   revalidatePath("/dashboard");
   revalidatePath("/net-worth");
+  revalidatePath("/transactions");
+  revalidatePath("/accounts");
+  await recordNetWorthSnapshot(session.user.id);
   return { success: true };
 }
 

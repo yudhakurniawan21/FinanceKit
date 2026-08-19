@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Pencil, RefreshCcw, Repeat } from "lucide-react";
+import { Plus, Trash2, Pencil, RefreshCcw, Repeat, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export function RecurringManager({
   recurring,
   categories,
   wallets,
+  liabilities,
   currency,
   dateFormat,
   timeZone,
@@ -62,6 +63,7 @@ export function RecurringManager({
   recurring: RecurringWithRefs[];
   categories: Category[];
   wallets: { id: string; name: string }[];
+  liabilities: { id: string; name: string }[];
   currency: string;
   dateFormat: string;
   timeZone: string;
@@ -183,6 +185,12 @@ export function RecurringManager({
                     </Badge>
                     {rec.category && <span>{rec.category.name}</span>}
                     {rec.account && <span>{rec.account.name}</span>}
+                    {rec.netWorthItem && (
+                      <span className="inline-flex items-center gap-1 text-destructive/80">
+                        <CreditCard className="h-3 w-3" />
+                        {rec.netWorthItem.name}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {t("nextRunLabel")}:{" "}
@@ -227,6 +235,7 @@ export function RecurringManager({
         mode="create"
         categories={categories}
         wallets={wallets}
+        liabilities={liabilities}
         currency={currency}
         locale={locale}
       />
@@ -240,6 +249,7 @@ export function RecurringManager({
           recurring={editRec}
           categories={categories}
           wallets={wallets}
+          liabilities={liabilities}
           currency={currency}
           locale={locale}
         />
@@ -299,6 +309,7 @@ export type RecurringPrefill = {
   method?: string | null;
   categoryId?: string | null;
   accountId?: string | null;
+  netWorthItemId?: string | null;
   startDate: string;
 };
 
@@ -310,6 +321,7 @@ export function RecurringDialog({
   prefill,
   categories,
   wallets,
+  liabilities,
   currency,
   locale,
 }: {
@@ -320,6 +332,7 @@ export function RecurringDialog({
   prefill?: RecurringPrefill | null;
   categories: Category[];
   wallets: { id: string; name: string }[];
+  liabilities: { id: string; name: string }[];
   currency: string;
   locale: string;
 }) {
@@ -337,6 +350,7 @@ export function RecurringDialog({
   const [account, setAccount] = useState(
     recurring?.accountId ?? prefill?.accountId ?? ""
   );
+  const [debt, setDebt] = useState(recurring?.netWorthItemId ?? "");
   const [startDate, setStartDate] = useState<Date | null>(
     recurring
       ? new Date(recurring.startDate)
@@ -354,6 +368,7 @@ export function RecurringDialog({
         setCategory(recurring.categoryId ?? "");
         setMethod(recurring.method ?? "");
         setAccount(recurring.accountId ?? "");
+        setDebt(recurring.netWorthItemId ?? "");
         setStartDate(new Date(recurring.startDate));
       } else if (prefill) {
         setType(prefill.type);
@@ -361,6 +376,7 @@ export function RecurringDialog({
         setCategory(prefill.categoryId ?? "");
         setMethod(prefill.method ?? "");
         setAccount(prefill.accountId ?? "");
+        setDebt(prefill.netWorthItemId ?? "");
         setStartDate(new Date(prefill.startDate));
       } else {
         setType("EXPENSE");
@@ -368,6 +384,7 @@ export function RecurringDialog({
         setCategory("");
         setMethod("");
         setAccount(wallets.length === 1 ? wallets[0].id : "");
+        setDebt("");
         setStartDate(new Date());
       }
     }, 0);
@@ -590,6 +607,43 @@ export function RecurringDialog({
                   </SelectContent>
                 </Select>
                 <input type="hidden" name="accountId" value={account} />
+              </Field>
+            )}
+
+            {type === "EXPENSE" && liabilities.length > 0 && (
+              <Field label={t("txDebtLabel")}>
+                <Select
+                  value={debt}
+                  onValueChange={(v: string | null) => setDebt(v ?? "")}
+                  disabled={isPending}
+                  items={[
+                    { value: "", label: t("noDebt") },
+                    ...liabilities.map((l) => ({
+                      value: l.id,
+                      label: l.name,
+                    })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("selectDebtPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="" label={t("noDebt")}>
+                      {t("noDebt")}
+                    </SelectItem>
+                    {liabilities.map((l) => (
+                      <SelectItem value={l.id} key={l.id} label={l.name}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="netWorthItemId" value={debt} />
+                {debt && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("txDebtHint")}
+                  </p>
+                )}
               </Field>
             )}
 

@@ -8,6 +8,28 @@ import { NetWorthItemSchema } from "@/lib/validation";
 import { majorToMinor } from "@/lib/currencies";
 import { translate } from "@/lib/i18n";
 import { recordNetWorthSnapshot } from "@/lib/db/net-worth";
+import type { DebtType, NetWorthType } from "@/lib/generated/prisma/client";
+
+// Metadata utang diterima hanya untuk LIABILITY; aset → null.
+function debtMeta(v: {
+  type: string;
+  debtType: string | null;
+  interestRate: number | null;
+  minPayment: number | undefined;
+  dueDay: number | null;
+  currency: string;
+}) {
+  const isLiability = v.type === "LIABILITY";
+  return {
+    debtType: isLiability ? (v.debtType as DebtType) ?? null : null,
+    interestRate: isLiability ? v.interestRate : null,
+    minPayment:
+      isLiability && v.minPayment && v.minPayment > 0
+        ? majorToMinor(v.minPayment, v.currency)
+        : null,
+    dueDay: isLiability ? v.dueDay : null,
+  };
+}
 
 async function resolveCurrency(userId: string): Promise<string> {
   const settings = await prisma.userSettings.findUnique({
@@ -48,16 +70,25 @@ export async function createNetWorthItemAction(
     data: {
       userId: session.user.id,
       name: v.name,
-      type: v.type,
+      type: v.type as NetWorthType,
       value: majorToMinor(v.value, currency),
       color: v.color ?? null,
       icon: v.icon ?? null,
       sortOrder: count,
+      ...debtMeta({
+        type: v.type,
+        debtType: v.debtType,
+        interestRate: v.interestRate,
+        minPayment: v.minPayment,
+        dueDay: v.dueDay,
+        currency,
+      }),
     },
   });
 
   await recordNetWorthSnapshot(session.user.id);
   revalidatePath("/net-worth");
+  revalidatePath("/tools");
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -84,15 +115,24 @@ export async function updateNetWorthItemAction(
     where: { id, userId: session.user.id },
     data: {
       name: v.name,
-      type: v.type,
+      type: v.type as NetWorthType,
       value: majorToMinor(v.value, currency),
       color: v.color ?? null,
       icon: v.icon ?? null,
+      ...debtMeta({
+        type: v.type,
+        debtType: v.debtType,
+        interestRate: v.interestRate,
+        minPayment: v.minPayment,
+        dueDay: v.dueDay,
+        currency,
+      }),
     },
   });
 
   await recordNetWorthSnapshot(session.user.id);
   revalidatePath("/net-worth");
+  revalidatePath("/tools");
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -106,6 +146,7 @@ export async function deleteNetWorthItemAction(
 
   await recordNetWorthSnapshot(session.user.id);
   revalidatePath("/net-worth");
+  revalidatePath("/tools");
   revalidatePath("/dashboard");
   return { success: true };
 }

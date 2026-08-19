@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { listGoals } from "@/lib/db/goals";
+import { listWallets } from "@/lib/db/wallets";
 import { GoalManager } from "@/components/goals/goal-manager";
 import { createTranslator } from "@/lib/i18n";
 import { redirect } from "next/navigation";
@@ -10,7 +11,10 @@ export default async function GoalsPage() {
     redirect("/sign-in?callbackUrl=/goals");
   }
 
-  const goals = await listGoals(user.user.id);
+  const [goals, wallets] = await Promise.all([
+    listGoals(user.user.id),
+    listWallets(user.user.id),
+  ]);
 
   const currency = user.settings?.currency ?? "IDR";
   const dateFormat = user.settings?.dateFormat ?? "dd/MM/yyyy";
@@ -30,6 +34,7 @@ export default async function GoalsPage() {
         dateFormat={dateFormat}
         timeZone={timeZone}
         locale={locale}
+        wallets={wallets}
       />
     </div>
   );

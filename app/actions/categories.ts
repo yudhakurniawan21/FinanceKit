@@ -42,6 +42,8 @@ export async function createCategoryAction(
   }
   const isSavings = v.isSavings ?? goalId !== null;
   const type = (goalId ? "EXPENSE" : v.type) as TransactionType;
+  // Kategori tabungan otomatis berklasifikasi SAVINGS (50/30/20).
+  const budgetTier = isSavings ? "SAVINGS" : v.budgetTier;
 
   const baseSlug = `${type.toLowerCase()}-${slugify(v.name)}`;
   let slug = baseSlug;
@@ -61,10 +63,12 @@ export async function createCategoryAction(
       budget: budgetMinor,
       isSavings,
       goalId,
+      budgetTier,
     },
   });
 
   revalidatePath("/categories");
+  revalidatePath("/tools");
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   return { success: true };
@@ -87,17 +91,28 @@ export async function updateCategoryAction(
   }
   const v = parsed.data;
 
+  const current = await prisma.category.findFirst({
+    where: { id, userId: session.user.id },
+    select: { isSavings: true },
+  });
+  if (!current) return { error: translate(locale, "errCategoryInvalid") };
+
+  const isSavings = v.isSavings ?? current.isSavings;
+  const budgetTier = isSavings ? "SAVINGS" : v.budgetTier;
+
   await prisma.category.update({
     where: { id, userId: session.user.id },
     data: {
       name: v.name,
       icon: v.icon ?? null,
       color: v.color ?? null,
-      isSavings: v.isSavings ?? undefined,
+      isSavings,
+      budgetTier,
     },
   });
 
   revalidatePath("/categories");
+  revalidatePath("/tools");
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   return { success: true };
@@ -116,6 +131,7 @@ export async function updateCategoryBudgetAction(
     data: { budget: budgetMinor },
   });
   revalidatePath("/categories");
+  revalidatePath("/tools");
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -127,6 +143,7 @@ export async function deleteCategoryAction(
   if (!session?.user) return { error: translate(null, "errSession") };
   await prisma.category.delete({ where: { id, userId: session.user.id } });
   revalidatePath("/categories");
+  revalidatePath("/tools");
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   return { success: true };

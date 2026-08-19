@@ -1,7 +1,17 @@
 import { z } from "zod/v4";
 
+// Kolom relasi opsional: "" pada form (select kosong) dipetakan ke null
+// supaya tidak lolos sebagai nilai FK non-eksis ("") saat insert/update.
+const RelationId = z.string().optional().transform((v) => (v ? v : null));
+
 export const TransactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 export const PaymentMethodSchema = z.enum(["CASH", "BANK", "E_WALLET", "CARD"]);
+
+// Klasifikasi 50/30/20: "" = tanpa klasifikasi (dipetakan ke null).
+export const BudgetTierSchema = z.union([
+  z.enum(["NEEDS", "WANTS", "SAVINGS"]),
+  z.literal(""),
+]);
 
 export const TransactionSchema = z.object({
   date: z.string().min(1, "Tanggal wajib diisi"),
@@ -9,11 +19,12 @@ export const TransactionSchema = z.object({
     .number({ error: "Jumlah harus angka" })
     .positive("Jumlah harus lebih besar dari 0"),
   type: TransactionTypeSchema,
-  categoryId: z.string().optional(),
+  categoryId: RelationId,
   description: z.string().max(500).optional(),
   method: PaymentMethodSchema.optional(),
-  accountId: z.string().optional(),
-  goalId: z.string().optional(),
+  accountId: RelationId,
+  goalId: RelationId,
+  netWorthItemId: RelationId,
 });
 
 export const CategorySchema = z.object({
@@ -30,6 +41,10 @@ export const CategorySchema = z.object({
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "on")),
   goalId: z.string().optional(),
+  // Klasifikasi 50/30/20 (opsional; "" = tanpa klasifikasi).
+  budgetTier: BudgetTierSchema.optional().transform((v) =>
+    v ? v : null
+  ),
 });
 
 // Edit kategori: nama/ikon/warna/budget + penanda tabungan saja
@@ -46,6 +61,9 @@ export const CategoryEditSchema = z.object({
     .enum(["on", "off"])
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "on")),
+  budgetTier: BudgetTierSchema.optional().transform((v) =>
+    v ? v : null
+  ),
 });
 
 export const UserSettingsSchema = z.object({
@@ -86,11 +104,16 @@ export const RecurringSchema = z.object({
     .positive("Jumlah harus lebih besar dari 0"),
   type: TransactionTypeSchema,
   frequency: RecurringFrequencySchema,
-  categoryId: z.string().optional(),
+  categoryId: RelationId,
   method: PaymentMethodSchema.optional(),
-  accountId: z.string().optional(),
+  accountId: RelationId,
+  netWorthItemId: RelationId,
   startDate: z.string().min(1, "Tanggal wajib diisi"),
 });
+
+// Prefill dari transaksi → jadwal berulang (tidak ada netWorthItemId/goalId
+// karena RecurringSchema sudah menangani semua kolom relasi opsional).
+export type RecurringInput = z.infer<typeof RecurringSchema>;
 
 export const GoalSchema = z.object({
   name: z.string().min(1, "Nama tujuan wajib diisi").max(50),
@@ -118,7 +141,19 @@ export const GoalAdjustSchema = z.object({
     .number({ error: "Jumlah harus angka" })
     .positive("Jumlah harus lebih besar dari 0"),
   direction: z.enum(["DEPOSIT", "WITHDRAW"]),
+  // Mutasi rekening: catat transaksi otomatis (saldo dompet tercatat).
+  linked: z
+    .enum(["on", "off"])
+    .optional()
+    .transform((v) => v === "on"),
+  accountId: z.string().optional(),
 });
+
+// Sub-tipe kewajiban utang. "" = tanpa klasifikasi (dipetakan ke null).
+export const DebtTypeSchema = z.union([
+  z.enum(["CREDIT_CARD", "PAYLATER", "MORTGAGE", "VEHICLE", "PERSONAL_LOAN"]),
+  z.literal(""),
+]);
 
 export const NetWorthItemSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi").max(50),
@@ -128,7 +163,28 @@ export const NetWorthItemSchema = z.object({
     .nonnegative("Nilai tidak boleh negatif"),
   color: z.string().optional(),
   icon: z.string().optional(),
+  // Metadata utang (hanya LIABILITY; opsional).
+  debtType: DebtTypeSchema.optional().transform((v) => (v ? v : null)),
+  interestRate: z.coerce
+    .number({ error: "Bunga harus angka" })
+    .min(0)
+    .max(100)
+    .optional()
+    .transform((v) => (v && v > 0 ? v : null)),
+  minPayment: z.coerce
+    .number({ error: "Cicilan harus angka" })
+    .nonnegative("Cicilan tidak boleh negatif")
+    .optional(),
+  dueDay: z.coerce
+    .number({ error: "Tanggal harus angka" })
+    .int()
+    .min(1)
+    .max(31)
+    .optional()
+    .transform((v) => (v && v >= 1 ? v : null)),
 });
+
+export type NetWorthItemInput = z.infer<typeof NetWorthItemSchema>;
 
 export type TransactionInput = z.infer<typeof TransactionSchema>;
 export type CategoryInput = z.infer<typeof CategorySchema>;

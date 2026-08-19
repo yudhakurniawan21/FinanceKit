@@ -233,6 +233,7 @@ function AddCategoryDialog({
   const [isSavings, setIsSavings] = useState(false);
   const [name, setName] = useState("");
   const [goalId, setGoalId] = useState("");
+  const [tier, setTier] = useState<string>("");
 
   const pickGoal = (g: (typeof goals)[number]) => {
     setName(g.name);
@@ -275,6 +276,10 @@ function AddCategoryDialog({
                 if (v) setType("EXPENSE");
               }}
             />
+
+            {!isSavings && type === "EXPENSE" && (
+              <TierField value={tier} onChange={setTier} />
+            )}
 
             {isSavings && goals.length > 0 && (
               <div className="space-y-1.5">
@@ -381,6 +386,7 @@ function CategoryEditDialog({
   const { t } = useI18n();
   const [state, action, isPending] = useActionState(updateCategoryAction, null);
   const [isSavings, setIsSavings] = useState(cat.isSavings);
+  const [tier, setTier] = useState<string>(cat.budgetTier ?? "");
 
   useEffect(() => {
     if (!state?.success) return;
@@ -414,6 +420,10 @@ function CategoryEditDialog({
             </Field>
 
             <KindField value={isSavings} onChange={setIsSavings} />
+
+            {!isSavings && cat.type === "EXPENSE" && (
+              <TierField value={tier} onChange={setTier} />
+            )}
 
             {isSavings && (
               <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
@@ -529,6 +539,52 @@ function KindField({
         name="isSavings"
         value={value ? "on" : "off"}
       />
+    </div>
+  );
+}
+
+// Klasifikasi 50/30/20 untuk kategori pengeluaran konsumtif.
+function TierField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useI18n();
+  const options: Array<{ value: string; label: string; color?: string }> = [
+    { value: "", label: t("tierNone") },
+    { value: "NEEDS", label: t("tierNeeds"), color: "#38c8ff" },
+    { value: "WANTS", label: t("tierWants"), color: "#ffd11a" },
+  ];
+  return (
+    <div className="space-y-1.5">
+      <Label>{t("allocTierLabel")}</Label>
+      <div className="flex gap-2">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            aria-pressed={value === o.value}
+            className={
+              "flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-2 text-sm font-medium " +
+              (value === o.value
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-input text-muted-foreground hover:bg-muted/50")
+            }
+          >
+            {o.color && (
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: o.color }}
+              />
+            )}
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <input type="hidden" name="budgetTier" value={value} />
     </div>
   );
 }
@@ -722,6 +778,22 @@ function CategoryGroup({
                       {t("badgeSavings")}
                     </span>
                   )}
+                  {!cat.isSavings &&
+                    cat.budgetTier &&
+                    cat.budgetTier !== "SAVINGS" && (
+                      <span
+                        className={
+                          "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide " +
+                          (cat.budgetTier === "NEEDS"
+                            ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300"
+                            : "border-amber-500/40 bg-amber-500/10 text-amber-600")
+                        }
+                      >
+                        {t(cat.budgetTier === "NEEDS"
+                          ? "tierNeeds"
+                          : "tierWants")}
+                      </span>
+                    )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button

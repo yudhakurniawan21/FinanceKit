@@ -14,6 +14,7 @@ import {
   Wallet,
   CreditCard,
   PiggyBank,
+  Car,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -39,6 +40,13 @@ import {
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog";
 import { Field } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -80,6 +88,33 @@ const TYPE_ICONS: Record<WalletType, React.ComponentType<{ className?: string }>
   E_WALLET: Wallet,
   CARD: CreditCard,
 };
+
+const DEBT_TYPES: Array<{
+  value: string;
+  labelKey: "dtCreditCard" | "dtPaylater" | "dtMortgage" | "dtVehicle" | "dtPersonalLoan" | "dtOther";
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { value: "CREDIT_CARD", labelKey: "dtCreditCard", icon: CreditCard },
+  { value: "PAYLATER", labelKey: "dtPaylater", icon: Wallet },
+  { value: "MORTGAGE", labelKey: "dtMortgage", icon: Landmark },
+  { value: "VEHICLE", labelKey: "dtVehicle", icon: Car },
+  { value: "PERSONAL_LOAN", labelKey: "dtPersonalLoan", icon: Banknote },
+  { value: "", labelKey: "dtOther", icon: Scale },
+];
+
+function labelForDebtType(
+  type: string
+):
+  | "dtCreditCard"
+  | "dtPaylater"
+  | "dtMortgage"
+  | "dtVehicle"
+  | "dtPersonalLoan"
+  | "dtOther" {
+  return (
+    DEBT_TYPES.find((d) => d.value === type)?.labelKey ?? "dtOther"
+  );
+}
 
 type ItemDialogState =
   | { mode: "create"; type: NetWorthType }
@@ -539,8 +574,34 @@ function NetWorthItemRow({
         <span className="min-w-0 truncate text-sm font-medium">
           {item.name}
         </span>
+        {isLiability && item.debtType && (
+          <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px]">
+            {t(labelForDebtType(item.debtType))}
+          </Badge>
+        )}
       </div>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex min-w-0 items-center gap-1">
+        {isLiability && (
+          <span className="hidden shrink-0 text-[11px] text-muted-foreground md:inline">
+            {(item.interestRate != null && item.interestRate > 0) ||
+            item.minPayment != null ||
+            item.dueDay != null
+              ? [
+                  item.interestRate != null && item.interestRate > 0
+                    ? `${item.interestRate}%`
+                    : null,
+                  item.minPayment != null && item.minPayment > 0
+                    ? formatMoney(item.minPayment, currency, locale)
+                    : null,
+                  item.dueDay != null
+                    ? t("dueDayShort", { day: item.dueDay })
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : ""}
+          </span>
+        )}
         <span
           className={
             "text-sm font-medium tabular-nums " +
@@ -644,6 +705,14 @@ function ItemDialog({
               <ColorField defaultValue={item?.color ?? COLOR_OPTIONS[0]} />
             </div>
 
+            {type === "LIABILITY" && (
+              <DebtFields
+                item={item ?? null}
+                currency={currency}
+                disabled={isPending}
+              />
+            )}
+
             {formState?.error && (
               <p className="text-sm text-destructive">{formState.error}</p>
             )}
@@ -665,6 +734,119 @@ function ItemDialog({
         </form>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
+  );
+}
+
+function DebtFields({
+  item,
+  currency,
+  disabled,
+}: {
+  item: NetWorthItem | null;
+  currency: string;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const [debtType, setDebtType] = useState<string>(item?.debtType ?? "");
+  const [interestRate, setInterestRate] = useState<string>(
+    item?.interestRate != null ? String(item.interestRate) : ""
+  );
+  const [dueDay, setDueDay] = useState<string>(
+    item?.dueDay != null ? String(item.dueDay) : ""
+  );
+
+  const typeOption = DEBT_TYPES.find((d) => d.value === debtType);
+  const TypeIcon = typeOption?.icon ?? Scale;
+
+  return (
+    <div className="space-y-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {t("debtMetaTitle")}
+      </p>
+
+      <Field label={t("debtTypeLabel")}>
+        <Select
+          value={debtType}
+          onValueChange={(v: string | null) => setDebtType(v ?? "")}
+          disabled={disabled}
+          items={DEBT_TYPES.map((d) => ({
+            value: d.value,
+            label: t(d.labelKey),
+          }))}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={t("debtTypePlaceholder")} />
+          </SelectTrigger>
+          <SelectContent>
+            {DEBT_TYPES.map((d) => {
+              const Icon = d.icon;
+              return (
+                <SelectItem key={d.value || "other"} value={d.value} label={t(d.labelKey)}>
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {t(d.labelKey)}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        <span
+          className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"
+          aria-hidden
+        >
+          <TypeIcon className="h-3 w-3" />
+          {t(debtType ? (DEBT_TYPES.find((d) => d.value === debtType)?.labelKey ?? "dtOther") : "dtOther")}
+        </span>
+        <input type="hidden" name="debtType" value={debtType} />
+      </Field>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <Field label={t("interestRateLabel")} htmlFor="nw-interest">
+            <Input
+              id="nw-interest"
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              inputMode="decimal"
+              value={interestRate}
+              onChange={(e) => setInterestRate(e.target.value)}
+              disabled={disabled}
+              placeholder="0"
+            />
+          </Field>
+          <input type="hidden" name="interestRate" value={interestRate} />
+        </div>
+
+        <MoneyInput
+          name="minPayment"
+          label={t("minPaymentLabel")}
+          defaultValue={
+            item?.minPayment ? minorToMajor(item.minPayment, currency) : undefined
+          }
+          currency={currency}
+          disabled={disabled}
+        />
+
+        <div>
+          <Field label={t("dueDayLabel")} htmlFor="nw-dueday">
+            <Input
+              id="nw-dueday"
+              type="number"
+              min={1}
+              max={31}
+              value={dueDay}
+              onChange={(e) => setDueDay(e.target.value)}
+              disabled={disabled}
+              placeholder={t("dueDayPlaceholder")}
+            />
+          </Field>
+          <input type="hidden" name="dueDay" value={dueDay} />
+        </div>
+      </div>
+    </div>
   );
 }
 

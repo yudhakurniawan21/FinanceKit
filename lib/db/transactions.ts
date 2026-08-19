@@ -174,10 +174,14 @@ export async function budgetRemaining(
 }
 
 // Pengeluaran bulan ini per kategori (minor unit), utk progress bar budget.
+// Secara default kategori tabungan TIDAK dihitung (saving = pemindahan dana,
+// bukan konsumsi). Untuk alokator 50/30/20, oper `{ includeSavings: true }`
+// supaya setoran tabungan/dana darurat ikut terhitung.
 export async function monthSpentByCategory(
   userId: string,
   start: Date,
-  end: Date
+  end: Date,
+  options?: { includeSavings?: boolean }
 ): Promise<Record<string, number>> {
   const rows = await prisma.transaction.groupBy({
     by: ["categoryId"],
@@ -185,8 +189,8 @@ export async function monthSpentByCategory(
       userId,
       type: "EXPENSE",
       date: { gte: start, lte: end },
-      category: { isSavings: false },
       categoryId: { not: null },
+      category: options?.includeSavings ? undefined : { isSavings: false },
     },
     _sum: { amount: true },
   });

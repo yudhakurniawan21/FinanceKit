@@ -12,6 +12,7 @@ import type {
   RecurringTransaction,
   TransactionType,
   PaymentMethod,
+  Prisma,
 } from "@/lib/generated/prisma/client";
 
 export function nextOccurrence(
@@ -33,6 +34,7 @@ export function nextOccurrence(
 export type RecurringWithRefs = RecurringTransaction & {
   category: { name: string } | null;
   account: { name: string } | null;
+  netWorthItem: { name: string } | null;
 };
 
 export async function listRecurring(
@@ -43,6 +45,7 @@ export async function listRecurring(
     include: {
       category: { select: { name: true } },
       account: { select: { name: true } },
+      netWorthItem: { select: { name: true } },
     },
     orderBy: [{ isActive: "desc" }, { nextRunDate: "asc" }],
   });
@@ -63,6 +66,7 @@ export async function listUpcomingRecurring(
     include: {
       category: { select: { name: true } },
       account: { select: { name: true } },
+      netWorthItem: { select: { name: true } },
     },
     orderBy: { nextRunDate: "asc" },
   });
@@ -77,6 +81,9 @@ export async function processDueRecurring(userId: string): Promise<number> {
     where: { userId, isActive: true, nextRunDate: { lte: new Date() } },
     orderBy: { nextRunDate: "asc" },
     take: 100,
+    include: {
+      category: { select: { isSavings: true, goalId: true } },
+    },
   });
   if (due.length === 0) return 0;
 
@@ -85,6 +92,15 @@ export async function processDueRecurring(userId: string): Promise<number> {
 
   for (const rec of due) {
     let runDate = new Date(rec.nextRunDate);
+    // Temuan 1: kategori tabungan → tautkan ke goal & naikkan saldo tujuan.
+    const goalId =
+      rec.type === "EXPENSE" && rec.category?.isSavings === true
+        ? (rec.category.goalId ?? null)
+        : null;
+    // Temuan 2: pembayaran cicilan berulang → potong pokok utang.
+    const netWorthItemId =
+      rec.type === "EXPENSE" ? (rec.netWorthItemId ?? null) : null;
+
     const batch: Array<{
       date: Date;
       amount: number;
@@ -92,6 +108,8 @@ export async function processDueRecurring(userId: string): Promise<number> {
       method: PaymentMethod | null;
       categoryId: string | null;
       accountId: string | null;
+      goalId: string | null;
+      netWorthItemId: string | null;
       description: string;
     }> = [];
 
@@ -104,6 +122,8 @@ export async function processDueRecurring(userId: string): Promise<number> {
         method: rec.method,
         categoryId: rec.categoryId,
         accountId: rec.accountId,
+        goalId,
+        netWorthItemId,
         description: rec.description,
       });
       runDate = nextOccurrence(rec.frequency, runDate);
@@ -112,7 +132,7 @@ export async function processDueRecurring(userId: string): Promise<number> {
     if (batch.length === 0) continue;
 
     try {
-      await prisma.$transaction([
+      const ops: Prisma.PrismaPromise<unknown>[] = [
         ...batch.map((t) =>
           prisma.transaction.create({
             data: {
@@ -129,7 +149,27 @@ export async function processDueRecurring(userId: string): Promise<number> {
             lastRunDate: batch[batch.length - 1].date,
           },
         }),
-      ]);
+      ];
+
+      const totalAmount = rec.amount * batch.length;
+      if (goalId) {
+        ops.push(
+          prisma.goal.update({
+            where: { id: goalId },
+            data: { currentAmount: { increment: totalAmount } },
+          })
+        );
+      }
+      if (netWorthItemId) {
+        ops.push(
+          prisma.netWorthItem.update({
+            where: { id: netWorthItemId },
+            data: { value: { decrement: totalAmount } },
+          })
+        );
+      }
+
+      await prisma.$transaction(ops);
       created += batch.length;
     } catch (err) {
       // Race: request lain memproses jadwal yang sama dan kalah unik constraint.
